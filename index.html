@@ -1035,7 +1035,7 @@ function vTitle(){
   if(V.tab==='trip'&&V.biz) return bz(V.biz).name;
   if(V.tab==='data'&&V.src) return srcOf(V.src).name;
   if(V.tab==='share'&&V.see) return 'What '+bz(V.see).name+' sees';
-  return {home:'Helmi',trip:'Your trip',data:'My data',me:'About me',share:'Sharing',start:'Welcome',finish:'Finish',tasks:'Quick tasks'}[V.tab];
+  return {home:'Helmi',trip:'Your trip',data:'My data',me:'About me',share:'Sharing',start:'Welcome',meet:'Your person',finish:'Finish',tasks:'Quick tasks'}[V.tab];
 }
 function renderVault(keepFocus){
   const el=$('vault'); if(!el) return;
@@ -1044,6 +1044,7 @@ function renderVault(keepFocus){
   const ae=document.activeElement, key=keepFocus&&ae&&el.contains(ae)?(ae.id||(ae.dataset.v?'v:'+ae.dataset.v+'|'+(ae.dataset.b||ae.dataset.s||ae.dataset.t||''):ae.dataset.k?'k:'+ae.dataset.k:'')):null;
   let body;
   if(V.tab==='start') body=vStart();
+  else if(V.tab==='meet') body=vMeet();
   else if(V.tab==='finish') body=vFinish();
   else if(V.tab==='tasks') body=vTasks();
   else if(V.tab==='home') body=vHome();
@@ -1053,13 +1054,13 @@ function renderVault(keepFocus){
   else body=V.see?vSee(bz(V.see)):vShare();
   const sub=(V.tab==='trip'&&V.biz)||(V.tab==='data'&&V.src)||(V.tab==='share'&&V.see);
   const pm=document.body.classList.contains('vault-only');
-  $('v-top').innerHTML=`${sub?`<button class="v-ib" data-v="back" aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>`:`<span class="v-who" aria-hidden="true">${esc(first()[0])}</span>`}
+  $('v-top').innerHTML=`${sub?`<button class="v-ib" data-v="back" aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>`:`<span class="v-who" aria-hidden="true">${V.tab==='start'?'':esc(first()[0])}</span>`}
     <h2 id="v-title" tabindex="-1">${esc(vTitle())}</h2>
     ${pm?(STUDY?'':`<button class="v-ib txt" data-act="pmode-off">Researcher</button>`):`<button class="v-ib" data-v="close" aria-label="Close the vault app"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`}`;
   if(S.task){ const r=taskCheck(); if(r==='end'){ V.tab='finish'; V.biz=null; V.src=null; V.see=null; body=vFinish(); } }
   $('v-screen').innerHTML=(S.task?taskBanner():'')+body;
   const np=pending().length;
-  $('v-nav').hidden=V.tab==='start';
+  $('v-nav').hidden=V.tab==='start'||V.tab==='meet';
   $('v-nav').innerHTML=VTABS.map(([k,l])=>`<button data-v="tab" data-t="${k}" ${V.tab===k?'aria-current="page"':''}>${VIC[k]}<span>${l}${k==='home'&&np?` <span class="badge" aria-label="${np} new requests">${np}</span>`:''}</span></button>`).join('');
   if(key){ let f=null; if(key.startsWith('v:')){const [a,b]=key.slice(2).split('|'); f=el.querySelector(`[data-v="${a}"][data-b="${b}"],[data-v="${a}"][data-s="${b}"],[data-v="${a}"][data-t="${b}"]`)||el.querySelector(`[data-v="${a}"]`);} else if(key.startsWith('k:')) f=el.querySelector(`[data-k="${key.slice(2)}"]`); else f=document.getElementById(key); if(f) f.focus({preventScroll:true}); }
 }
@@ -1082,7 +1083,10 @@ document.addEventListener('click',e=>{
   const bv=e.target.closest('[data-act="bv"]'); if(bv){ S.bv=bv.dataset.b; renderBizView(); restore('bvt-'+S.bv); return; }
   const v=e.target.closest('[data-v]'); if(!v) return; const a=v.dataset.v, bid=v.dataset.b;
   if(a==='close'){ closeVault(); return; }
-  if(a==='begin'){ const c=($('vcode').value||'').trim()||randCode(); S.pid=c.slice(0,24); S.t0=Date.now(); log('study start',S.pid+' '+S.persona+' '+S.arch); vGo({tab:'home'}); return; }
+  if(a==='begin'){ const c=(($('vcode').value||'').trim()||randCode()).slice(0,24); let per=S.persona, adv=S.advice, how='link';
+    if(!FIXED){ const g=GROUPS[groupOf(c)]; per=g[0]; adv=g[1]; how='code'; }
+    S=fresh(per,S.arch,c); S.advice=adv; S.assign=how; log('study start',S.pid+' '+S.persona+' advice '+(adv?'on':'off')+' ('+how+')'); vGo({tab:'meet'}); return; }
+  if(a==='meetgo'){ S.t0=Date.now(); vGo({tab:'home'}); return; }
   if(a==='finish'){ const tasksDone=S.study&&S.study.tasksDone; log('study finish view'); vGo({tab:tasksDone?'finish':'tasks',biz:null,src:null,see:null}); return; }
   if(a==='taskstart'){ S.study=S.study||{}; S.study.tasks={}; S.study.tasksDone=true; S.task={i:0,t0:Date.now(),stopId:stopTarget()}; log('tasks start'); vGo({tab:'home',biz:null,src:null,see:null}); return; }
   if(a==='taskskipall'){ S.study=S.study||{}; S.study.tasksDone=true; S.study.tasks={skipped:true}; log('tasks skipped'); vGo({tab:'finish'}); return; }
@@ -1137,10 +1141,29 @@ const STUDY=(location.hash||'').startsWith('#vault');
 const FORM_TEMPLATE=''; /* optional: paste a Microsoft Forms pre-filled link here, with CODE and ANSWERS as the pre-filled values */
 const formTpl=()=>HP.get('form')||FORM_TEMPLATE;
 const randCode=()=>'P-'+String(Math.floor(1000+Math.random()*9000));
-function studyResults(){
+const GROUPS=[['aino',false],['aino',true],['elina',false],['elina',true]];
+const FIXED=HP.has('persona')||HP.has('advice');
+function groupOf(code){ const c=String(code||'').trim().toUpperCase(); const d=(c.match(/\d+/g)||[]).join(''); let n;
+  if(d){ n=parseInt(d.slice(-7),10); } else { n=7; for(const ch of c) n=(Math.imul(n,31)+ch.charCodeAt(0))>>>0; }
+  let h=Math.imul(n^0x5bd1e995,0x9E3779B1)>>>0; h^=h>>>15; h=Math.imul(h,0x85EBCA6B)>>>0; h^=h>>>13; return (h>>>0)%4; }
+function studyResults(){ const r=JSON.parse(tosLine().slice(5)); return readable(r)+'\n\nResearch data (please do not edit):\n'+tosLine(); }
+const DURT={trip:'this trip only',d30:'30 days',until:'until taken back'};
+const ARCHT={A:'A, data stays where it is',B:'B, one server you own',same:'no difference',unsure:'not sure'};
+const TASKT=[['see','Find what the hotel sees'],['stop','Take back access'],['bank','Find the bank transactions']];
+function taskTxt(r,k){ const x=(r.tasks||{})[k]; if(!x) return r.tasks&&r.tasks.skipped?'skipped all tasks':'not reached'; return x.ok===true?'done in '+x.s+' s':x.ok==='n/a'?'not needed':'skipped after '+x.s+' s'; }
+function readable(r){
+  const B=BIZ[r.persona]||[], D=DATA[r.persona]||{}, nm=(D.profile||{}).name||r.persona, lab=k=>(((D.fields||{})[k])||{}).label||k;
+  const L=[`Participant ${r.code} · played ${nm} · Helmi advice ${r.advice?'on':'off'} · on a ${r.device} · ${r.mins} min`,'','REQUESTS'];
+  B.forEach(b=>{ const x=r.dec&&r.dec[b.id]; if(!x){ L.push(`• ${b.name}: not answered`); return; }
+    L.push(`• ${b.name}: ${x.shared.length?`shared ${x.shared.length} of ${x.asked} (${DURT[x.dur]||x.dur})`:`said no to all ${x.asked}`}${x.revoked?', then took access back':''} · decided in ${x.secs} s`);
+    if(x.shared.length) L.push('   '+x.shared.map(lab).join(', ')); });
+  L.push('','TASKS'); TASKT.forEach(([k,t])=>L.push(`• ${t}: ${taskTxt(r,k)}`));
+  L.push('','RATINGS',`• Felt in control: ${r.control||'–'} of 5`,`• Easy to use: ${r.easy||'–'} of 5`,`• Would trust more: ${ARCHT[r.archPref]||'–'}`,`• Opened the first request after ${r.firstOpen??'–'} s`,`• Comment: ${r.comment||'none'}`);
+  return L.join('\n'); }
+function tosLine(){
   const d={};
   biz().forEach(b=>{const x=S.dec[b.id]; d[b.id]=x?{shared:x.fields,asked:b.fields.length,dur:x.dur,secs:x.secs,revoked:!!S.revoked[b.id]}:null;});
-  return 'TOS1:'+JSON.stringify({v:1,code:S.pid,persona:S.persona,setup:S.arch,advice:S.advice?1:0,mins:Math.round((Date.now()-S.t0)/6000)/10,dec:d,control:(S.study||{}).control||null,easy:(S.study||{}).easy||null,firstOpen:(S.study||{}).firstOpen??null,tasks:(S.study||{}).tasks||{},archPref:(S.study||{}).arch||null,comment:(S.study||{}).comment||'',device:/Mobi|Android|iPhone/i.test(navigator.userAgent)?'phone':'computer',at:new Date().toISOString().slice(0,16)});
+  return 'TOS1:'+JSON.stringify({v:1,code:S.pid,persona:S.persona,setup:S.arch,advice:S.advice?1:0,assign:S.assign||'link',mins:Math.round((Date.now()-S.t0)/6000)/10,dec:d,control:(S.study||{}).control||null,easy:(S.study||{}).easy||null,firstOpen:(S.study||{}).firstOpen??null,tasks:(S.study||{}).tasks||{},archPref:(S.study||{}).arch||null,comment:(S.study||{}).comment||'',device:/Mobi|Android|iPhone/i.test(navigator.userAgent)?'phone':'computer',at:new Date().toISOString().slice(0,16)});
 }
 function sendUrl(){ const tpl=formTpl(); if(!tpl) return ''; return tpl.replace('CODE',encodeURIComponent(S.pid)).replace('ANSWERS',encodeURIComponent(studyResults())); }
 
@@ -1162,16 +1185,21 @@ function vTasks(){ return helmi('Before you finish: three quick tasks. Each one 
   `<ol class="v-plain">${TASKS().filter(k=>!k.skip).map(k=>`<li>${esc(k.text)}</li>`).join('')}</ol><button class="v-btn" data-v="taskstart">Start task 1</button><button class="v-btn alt" data-v="taskskipall">Skip the tasks</button>`; }
 function vStart(){
   const p=P().profile;
-  return helmi(`Thank you for helping us test this app idea. You will play <b>${esc(p.name)}</b>, an invented person. Nothing you do here uses your own information.`)+
+  return helmi(`Thank you for helping us test this app idea. You will play an invented person. Nothing you do here uses your own information.`)+
    `<div class="v-card" style="display:grid;gap:8px"><p class="v-big"><b>What is this app?</b></p>
      <p class="small">Lots of organisations already hold information about you: your bank, the health service, your phone's maps, shops' loyalty cards. Usually you can't see who has what, and you have to tell every new place the same things again.</p>
      <p class="small">This app is an idea for changing that. You write down what you need <b>once</b>. When a hotel, a train company or a restaurant asks for some of it, the app's assistant, <b>Helmi</b>, tells you what they want and why. You decide what they can see, and for how long.</p>
      <p class="small">You can say no to anything. You can take access back at any time. Businesses only see what you said yes to.</p></div>
-   <div class="v-card"><p class="v-big"><b>${esc(p.name)}, ${p.age}</b></p><p class="small">${esc(p.disability)}</p><p class="small muted">Trip: ${esc(CITY())}, 12 to 14 November</p></div>
-   <p class="small">Places on ${esc(first())}'s trip will ask for some of her information. Decide what to share the way you think she would. There are no right answers: we are testing the app, not you.</p>
-   <div class="v-field"><label for="vcode" style="font-weight:600">Your code</label><input id="vcode" type="text" value="${esc(S.pid||randCode())}" autocomplete="off" style="min-height:48px;border:1px solid var(--ink);border-radius:12px;padding:0 12px;font-size:1.0625rem"><span class="tiny muted">Keep this code. If you were given a code, type it here instead.</span></div>
+   <div class="v-field"><label for="vcode" style="font-weight:600">Your code</label><input id="vcode" type="text" value="${esc(S.pid||randCode())}" autocomplete="off" style="min-height:48px;border:1px solid var(--ink);border-radius:12px;padding:0 12px;font-size:1.0625rem"><span class="tiny muted">Keep this code. If you were given a code, type it here instead. The app picks your person from it.</span></div>
    <fieldset class="v-field"><legend style="font-weight:600;margin-bottom:6px">Text size</legend><div class="seg"><label><input type="radio" name="vsize" value="m" ${document.documentElement.classList.contains('size-l')||document.documentElement.classList.contains('size-xl')?'':'checked'}><span>Normal</span></label><label><input type="radio" name="vsize" value="l" ${document.documentElement.classList.contains('size-l')?'checked':''}><span>Large</span></label><label><input type="radio" name="vsize" value="xl" ${document.documentElement.classList.contains('size-xl')?'checked':''}><span>Extra large</span></label></div></fieldset>
    <button class="v-btn" data-v="begin">Start</button>`;
+}
+function vMeet(){
+  const p=P().profile;
+  return helmi(`Today you are <b>${esc(p.name)}</b>.`)+
+   `<div class="v-card"><p class="v-big"><b>${esc(p.name)}, ${p.age}</b></p><p class="small">${esc(p.disability)}</p><p class="small muted">Trip: ${esc(CITY())}, 12 to 14 November</p></div>
+   <p class="small">Places on ${esc(first())}'s trip will ask for some of her information. Decide what to share the way you think she would. There are no right answers: we are testing the app, not you.</p>
+   <button class="v-btn" data-v="meetgo">Begin</button>`;
 }
 function vFinish(){
   const st=S.study||(S.study={});
@@ -1191,21 +1219,38 @@ function vFinish(){
 }
 
 /* ================================================================== admin: run a study */
-const ST={host:'',form:'',links:null,rows:[],qr:null};
+const ST={host:'',form:'',links:null,rows:[],qr:null,codes:[],saved:false};
+const STKEY='tos-study-v1';
+function stSave(){ try{ localStorage.setItem(STKEY,JSON.stringify({host:ST.host,form:ST.form,codes:ST.codes})); ST.saved=true; }catch(e){ ST.saved=false; } }
+function stLoad(){ try{ const o=JSON.parse(localStorage.getItem(STKEY)||'null'); if(o){ ST.host=o.host||''; ST.form=o.form||''; ST.codes=o.codes||[]; if(ST.host||ST.form) ST.links=studyLinks(); ST.saved=true; } }catch(e){} }
+function stForget(){ try{ localStorage.removeItem(STKEY); }catch(e){} ST.host=''; ST.form=''; ST.codes=[]; ST.links=null; ST.saved=false; }
+function rnd(n){ const a=new Uint32Array(1); (window.crypto||{getRandomValues:x=>{x[0]=Math.random()*4294967296;return x;}}).getRandomValues(a); return a[0]%n; }
+function makeCodes(n){ n=Math.max(4,Math.min(400,Math.round(n)||32)); const per=Array(4).fill(Math.floor(n/4)); for(let i=0;i<n%4;i++) per[rnd(4)]++;
+  const used=new Set(ST.rows.map(r=>r.code).concat(ST.codes)), out=[], left=per.slice(); let guard=0;
+  while(out.length<n&&guard++<200000){ const c='P-'+(1000+rnd(9000)); if(used.has(c)) continue; const g=groupOf(c); if(left[g]>0){ left[g]--; used.add(c); out.push(c); } }
+  for(let i=out.length-1;i>0;i--){ const j=rnd(i+1); [out[i],out[j]]=[out[j],out[i]]; } return out; }
+function printCodes(){ const w=window.open('','_blank'); if(!w) return; w.document.write(`<!doctype html><title>Participant codes</title><style>body{font-family:Arial,sans-serif;margin:12mm}.g{display:grid;grid-template-columns:repeat(3,1fr);gap:0}.s{border:1px dashed #999;padding:14px;text-align:center}.c{font-size:22pt;font-weight:700;letter-spacing:.05em}p{margin:4px 0;font-size:10pt}</style><div class="g">${ST.codes.map(c=>`<div class="s"><p>Your participant code</p><p class="c">${c}</p><p>Type it on the app's first screen</p></div>`).join('')}</div><script>print()<\/script>`); w.document.close(); }
+function sessionCard(r){ return `<details class="card" style="padding:10px 14px"><summary style="cursor:pointer;font-weight:600">${esc(r.code)} · ${esc(((DATA[r.persona]||{}).profile||{}).name||r.persona)} · advice ${r.advice?'on':'off'}</summary><pre style="white-space:pre-wrap;font:inherit;font-size:.9375rem;line-height:1.5;margin:8px 0 0">${esc(readable(r))}</pre></details>`; }
 const loadScript=src=>new Promise((res,rej)=>{ if(document.querySelector(`script[src="${src}"]`)) return res(); const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('load')); document.head.appendChild(s); });
 function studyLinks(){ const base=(ST.host||location.href.split('#')[0]).trim(); const f=ST.form.trim()?('&form='+encodeURIComponent(ST.form.trim())):'';
-  return [['Aino · Helmi advice off','persona=aino&setup=A&advice=off'],['Aino · Helmi advice on','persona=aino&setup=A&advice=on'],['Elina · Helmi advice off','persona=elina&setup=A&advice=off'],['Elina · Helmi advice on','persona=elina&setup=A&advice=on'],['Random (for the survey)','setup=A']].map(([l,q])=>[l,base+'#vault'+(q?'&'+q:'')+f]); }
+  return [['Participant link (everyone: sessions and survey)','setup=A'],['Testing only · Aino, Helmi advice off','persona=aino&setup=A&advice=off'],['Testing only · Aino, Helmi advice on','persona=aino&setup=A&advice=on'],['Testing only · Elina, Helmi advice off','persona=elina&setup=A&advice=off'],['Testing only · Elina, Helmi advice on','persona=elina&setup=A&advice=on']].map(([l,q])=>[l,base+'#vault'+(q?'&'+q:'')+f]); }
 function renderStudy(){
   const L=studyLinks(), rows=ST.rows;
   const bizIds=['rail','hotel','bistro','venue','ins'];
-  $('study').innerHTML=`<div class="sec-head"><p class="label">8 · Run a study</p><h2 id="h-study">Participant links and results</h2><p class="lede">Participants use their own phones. Give each group its link or QR code. At the end they send their answers to your Microsoft Form; combine everything here.</p></div>
+  $('study').innerHTML=`<div class="sec-head"><p class="label">8 · Run a study</p><h2 id="h-study">Participant links and results</h2><p class="lede">Participants use their own phones. Everyone gets the same link. The app assigns each person to Aino or Elina, and Helmi advice on or off, from their participant code, so the team never chooses. At the end they send their answers to your Microsoft Form; combine everything here.</p></div>
    <div class="grid2"><div class="card" style="display:grid;gap:12px;align-content:start">
      <h3>1. Make the links</h3>
      <div><label for="st-host" style="font-weight:600">Where the demo is hosted</label><input type="text" id="st-host" value="${esc(ST.host||location.href.split('#')[0])}" autocomplete="off"><p class="tiny muted">The public address of this file, for example on GitHub Pages or Netlify.</p></div>
      <div><label for="st-form" style="font-weight:600">Microsoft Forms pre-filled link (optional)</label><input type="text" id="st-form" value="${esc(ST.form)}" placeholder="https://forms.office.com/...CODE...ANSWERS..." autocomplete="off">
        <p class="tiny muted">In your form, add a short-answer question "Participant code" and a long-answer question "Session answers". Choose <b>...</b> then <b>Get pre-filled URL</b>, type CODE in the first and ANSWERS in the second, and paste the link here. Without it, participants copy or save their answers instead.</p></div>
      <div class="row"><button class="btn sm" data-act="st-make">Make links</button></div>
-     ${ST.links?`<ul class="grants" style="list-style:none;margin:0;padding:0">${ST.links.map(([l,u],i)=>`<li class="grant" style="grid-template-columns:1fr"><b>${esc(l)}</b><input type="text" readonly value="${esc(u)}" aria-label="Link for ${esc(l)}" id="st-l${i}"><div class="row"><button class="btn alt sm" data-act="st-copy" data-i="${i}">Copy link</button><button class="btn alt sm" data-act="st-qr" data-i="${i}">Show QR code</button><a class="btn alt sm" style="display:inline-flex;align-items:center;text-decoration:none" href="${esc(u)}" target="_blank" rel="noopener">Open</a></div></li>`).join('')}</ul>`:''}
+     ${ST.links?`<ul class="grants" style="list-style:none;margin:0;padding:0">${ST.links.slice(0,1).map(([l,u],j)=>{const i=j+0; return `<li class="grant" style="grid-template-columns:1fr"><b>${esc(l)}</b><input type="text" readonly value="${esc(u)}" aria-label="Link for ${esc(l)}" id="st-l${i}"><div class="row"><button class="btn alt sm" data-act="st-copy" data-i="${i}">Copy link</button><button class="btn alt sm" data-act="st-qr" data-i="${i}">Show QR code</button><a class="btn alt sm" style="display:inline-flex;align-items:center;text-decoration:none" href="${esc(u)}" target="_blank" rel="noopener">Open</a></div></li>`;}).join('')}</ul>
+       <details><summary class="small" style="cursor:pointer;font-weight:600">Fixed links for testing the groups (not for participants)</summary><ul class="grants" style="list-style:none;margin:8px 0 0;padding:0">${ST.links.slice(1).map(([l,u],j)=>{const i=j+1; return `<li class="grant" style="grid-template-columns:1fr"><b>${esc(l)}</b><input type="text" readonly value="${esc(u)}" aria-label="Link for ${esc(l)}" id="st-l${i}"><div class="row"><button class="btn alt sm" data-act="st-copy" data-i="${i}">Copy link</button><button class="btn alt sm" data-act="st-qr" data-i="${i}">Show QR code</button><a class="btn alt sm" style="display:inline-flex;align-items:center;text-decoration:none" href="${esc(u)}" target="_blank" rel="noopener">Open</a></div></li>`;}).join('')}</ul></details>`:''}
+     <p class="tiny muted" role="status">${ST.saved?'Saved in this browser: the address, form link and codes come back next time you open this page here.':'Click Make links to save them in this browser.'}${ST.saved?' <button class="btn alt sm" data-act="st-forget" style="margin-left:6px">Forget saved links</button>':''}</p>
+     <h3 style="margin-top:8px">Participant codes for sessions</h3>
+     <p class="small">Make a shuffled set of codes with the four groups in equal numbers, and hand them out in order. Nobody can tell from a code which group it is, so the team cannot steer who gets what. Survey respondents don't need one: the app makes a random code for them.</p>
+     <div class="row"><label for="st-n" style="font-weight:600">How many</label><input type="number" id="st-n" min="4" max="400" value="${ST.codes.length||32}" style="width:90px"><button class="btn sm" data-act="st-codes">Make codes</button>${ST.codes.length?'<button class="btn alt sm" data-act="st-print">Print code slips</button><button class="btn alt sm" data-act="st-codescsv">Download codes</button>':''}</div>
+     ${ST.codes.length?`<p class="small" style="font-family:ui-monospace,monospace;line-height:1.8">${ST.codes.map(esc).join(' &nbsp; ')}</p>`:''}
      <div id="st-qrbox" ${ST.qr==null?'hidden':''} style="display:grid;gap:8px;justify-items:center;padding:16px;background:#fff;border:1px solid var(--hair);border-radius:var(--r)"><p style="font-weight:700" id="st-qrlabel"></p><div id="st-qr"></div><button class="btn alt sm" data-act="st-qrclose">Close QR code</button></div>
    </div>
    <div class="card" style="display:grid;gap:12px;align-content:start;grid-template-columns:minmax(0,1fr)">
@@ -1215,7 +1260,8 @@ function renderStudy(){
      <div><label for="st-paste" style="font-weight:600">Or paste answers</label><textarea id="st-paste" rows="3" placeholder="TOS1:{...}"></textarea></div>
      <div class="row"><button class="btn sm" data-act="st-combine">Combine</button>${rows.length?`<button class="btn alt sm" data-act="st-export">Export combined CSV</button><button class="btn alt sm" data-act="st-clear">Clear</button>`:''}</div>
      <p class="small" id="st-msg" role="status">${rows.length?rows.length+' session'+(rows.length>1?'s':'')+' combined.':''}</p>
-     ${rows.length?`<div class="tbl" tabindex="0" role="region" aria-label="Combined sessions"><table><thead><tr><th scope="col">Code</th><th scope="col">Persona</th><th scope="col">Setup</th>${['Travel','Hotel','Bistro','Venue','Insurer'].map(b=>`<th scope="col">${b}</th>`).join('')}<th scope="col">Advice</th><th scope="col">Tasks (s)</th><th scope="col">A/B</th><th scope="col">Control</th><th scope="col">Easy</th><th scope="col">Min</th><th scope="col">Comment</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.code)}</td><td>${esc(r.persona)}</td><td>${esc(r.setup)}</td>${bizIds.map(b=>{const x=r.dec&&r.dec[b]; return `<td>${x?(x.revoked?'revoked ':'')+x.shared.length+'/'+x.asked:'–'}</td>`;}).join('')}<td>${r.advice?'on':'off'}</td><td>${['see','stop','bank'].map(k=>{const x=(r.tasks||{})[k]; return x?(x.ok===true?x.s:x.ok==='n/a'?'n/a':'skip'):'–';}).join(' · ')}</td><td>${esc(r.archPref||'')}</td><td>${r.control||''}</td><td>${r.easy||''}</td><td>${r.mins||''}</td><td>${esc((r.comment||'').slice(0,60))}</td></tr>`).join('')}</tbody></table></div>`:''}
+     ${rows.length?`<div class="tbl" tabindex="0" role="region" aria-label="Combined sessions"><table><thead><tr><th scope="col">Code</th><th scope="col">Persona</th><th scope="col">Setup</th>${['Travel','Hotel','Bistro','Venue','Insurer'].map(b=>`<th scope="col">${b}</th>`).join('')}<th scope="col">Advice</th><th scope="col">Tasks (s)</th><th scope="col">A/B</th><th scope="col">Control</th><th scope="col">Easy</th><th scope="col">Min</th><th scope="col">Comment</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.code)}</td><td>${esc(r.persona)}</td><td>${esc(r.setup)}</td>${bizIds.map(b=>{const x=r.dec&&r.dec[b]; return `<td>${x?(x.revoked?'revoked ':'')+x.shared.length+'/'+x.asked:'–'}</td>`;}).join('')}<td>${r.advice?'on':'off'}</td><td>${['see','stop','bank'].map(k=>{const x=(r.tasks||{})[k]; return x?(x.ok===true?x.s:x.ok==='n/a'?'n/a':'skip'):'–';}).join(' · ')}</td><td>${esc(r.archPref||'')}</td><td>${r.control||''}</td><td>${r.easy||''}</td><td>${r.mins||''}</td><td>${esc((r.comment||'').slice(0,60))}</td></tr>`).join('')}</tbody></table></div>
+     <h3>Read each session</h3><div style="display:grid;gap:8px">${rows.map(sessionCard).join('')}</div>`:''}
    </div></div>`;
 }
 function extractTOS(raw){ return extractTOS1(raw).concat(raw.includes('""')?extractTOS1(raw.replace(/""/g,'"')):[]); }
@@ -1234,13 +1280,17 @@ async function combine(){
 }
 function exportCombined(){
   const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"'; const bizIds=['rail','hotel','bistro','venue','ins'];
-  const head=['code','persona','setup','helmi_advice','minutes','device','submitted','first_request_seconds','task_see_seconds','task_see_result','task_stop_seconds','task_stop_result','task_bank_seconds','task_bank_result','trust_A_or_B'].concat(...bizIds.map(b=>[b+'_shared',b+'_asked',b+'_items',b+'_duration',b+'_seconds',b+'_revoked'])).concat(['control_1to5','easy_1to5','comment']);
-  const rows=[head].concat(ST.rows.map(r=>[r.code,r.persona,r.setup,r.advice,r.mins,r.device,r.at,r.firstOpen].concat(...['see','stop','bank'].map(k=>{const x=(r.tasks||{})[k]; return x?[x.s==null?'':x.s,x.ok===true?'done':x.ok==='n/a'?'n/a':'skipped']:['',''];})).concat([r.archPref||'']).concat(...bizIds.map(b=>{const x=r.dec&&r.dec[b]; return x?[x.shared.length,x.asked,x.shared.join(' '),x.dur,x.secs,x.revoked?'yes':'no']:['','','','','',''];})).concat([r.control,r.easy,r.comment])));
+  const head=['code','persona','setup','helmi_advice','assigned_by','minutes','device','submitted','first_request_seconds','task_see_seconds','task_see_result','task_stop_seconds','task_stop_result','task_bank_seconds','task_bank_result','trust_A_or_B'].concat(...bizIds.map(b=>[b+'_shared',b+'_asked',b+'_items',b+'_duration',b+'_seconds',b+'_revoked'])).concat(['control_1to5','easy_1to5','comment']);
+  const rows=[head].concat(ST.rows.map(r=>[r.code,r.persona,r.setup,r.advice,r.assign||'',r.mins,r.device,r.at,r.firstOpen].concat(...['see','stop','bank'].map(k=>{const x=(r.tasks||{})[k]; return x?[x.s==null?'':x.s,x.ok===true?'done':x.ok==='n/a'?'n/a':'skipped']:['',''];})).concat([r.archPref||'']).concat(...bizIds.map(b=>{const x=r.dec&&r.dec[b]; return x?[x.shared.length,x.asked,x.shared.join(' '),x.dur,x.secs,x.revoked?'yes':'no']:['','','','','',''];})).concat([r.control,r.easy,r.comment])));
   const blob=new Blob(['﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='vault-study_combined.csv'; document.body.appendChild(a); a.click(); a.remove();
 }
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act^="st-"]'); if(!b) return; const a=b.dataset.act;
-  if(a==='st-make'){ ST.host=$('st-host').value; ST.form=$('st-form').value; ST.links=studyLinks(); renderStudy(); log('study links'); return; }
+  if(a==='st-make'){ ST.host=$('st-host').value; ST.form=$('st-form').value; ST.links=studyLinks(); stSave(); renderStudy(); log('study links'); return; }
+  if(a==='st-forget'){ stForget(); renderStudy(); log('study links forgotten'); return; }
+  if(a==='st-codes'){ ST.codes=makeCodes(+$('st-n').value); stSave(); renderStudy(); log('study codes',ST.codes.length+''); return; }
+  if(a==='st-print'){ printCodes(); return; }
+  if(a==='st-codescsv'){ const blob=new Blob(['code\r\n'+ST.codes.join('\r\n')],{type:'text/csv'}); const el=document.createElement('a'); el.href=URL.createObjectURL(blob); el.download='participant-codes.csv'; document.body.appendChild(el); el.click(); el.remove(); return; }
   if(a==='st-copy'){ const inp=$('st-l'+b.dataset.i); const v=inp.value; const ok=()=>{b.textContent='Copied';}; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(ok,()=>fallbackCopy(v,ok)); else fallbackCopy(v,ok); return; }
   if(a==='st-qr'){ const [l,u]=ST.links[+b.dataset.i]; ST.qr=+b.dataset.i; const box=$('st-qrbox'); box.hidden=false; $('st-qrlabel').textContent=l; const el=$('st-qr'); el.innerHTML='';
     try{ await loadScript('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'); new QRCode(el,{text:u,width:320,height:320,correctLevel:QRCode.CorrectLevel.L}); el.setAttribute('role','img'); el.setAttribute('aria-label','QR code for '+l); }
@@ -1301,7 +1351,7 @@ document.addEventListener('keydown',e=>{ if(!BA.open) return;
     if(e.shiftKey&&i<=0){e.preventDefault(); f[f.length-1].focus();} else if(!e.shiftKey&&i===f.length-1){e.preventDefault(); f[0].focus();} }
 });
 
-renderAll(); renderStudy();
+renderAll(); stLoad(); renderStudy();
 if(STUDY){ const pick=(v,opts)=>opts.includes(v)?v:opts[Math.floor(Math.random()*opts.length)];
   const per=pick(HP.get('persona'),['aino','elina']), ar=pick(HP.get('setup'),['A']);
   S=fresh(per,ar); S.advice=HP.has('advice')?HP.get('advice')==='on':Math.random()<.5; S.pid=HP.get('code')||''; renderAll();
