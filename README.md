@@ -4,7 +4,7 @@
 
 Built by students at Tampere University for an interdisciplinary project with [Demola](https://www.demola.net), as part of the *Data for Value* challenge.
 
-👉 **Try the demo:** https://YOUR-USERNAME.github.io/tell-once-demo/
+**Try the demo:** https://YOUR-USERNAME.github.io/tell-once-demo/
 
 ---
 
@@ -41,7 +41,7 @@ Their trips involve invented businesses: an airline or rail company, a hotel, th
 Add `#vault` to the address to open participant mode, for example:
 
 ```
-https://YOUR-USERNAME.github.io/tell-once-demo/#vault&persona=aino&setup=A&advice=on
+https://selorme.github.io/data-for-value-demo/#vault&persona=aino&setup=A&advice=on
 ```
 
 | Setting | Values |
@@ -71,7 +71,7 @@ No install or build is needed. Download `index.html` and open it in any modern b
 
 - **University:** Tampere University
 - **Partner:** Demola, *Data for Value* challenge
-- **Team:** _add names_
-- **Contact:** _add team email_
+- **Team:** Ruth Selorme, Towhidul, Dora, Rui
+- **Contact:** through Github
 
-This is a student research prototype, not a real product.
+This is a student research prototype.
