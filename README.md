@@ -4,7 +4,7 @@
 
 Built by students at Tampere University for an interdisciplinary project with [Demola](https://www.demola.net), as part of the *Data for Value* challenge.
 
-**Try the demo:** https://YOUR-USERNAME.github.io/tell-once-demo/
+**Try the demo:** https://selorme.github.io/data-for-value-demo/
 
 ---
 
