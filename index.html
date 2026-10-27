@@ -290,6 +290,27 @@ body.vault-only .vault-back{background:var(--ground)}
 .sw-in:checked+.sw-ui::after{transform:translateX(20px)}
 .sw-in:focus-visible+.sw-ui{outline:3px solid var(--accent);outline-offset:2px}
 .sw-row:has(.sw-in:checked){border-color:var(--good);background:var(--goodbg)}
+.net-stack{display:grid;gap:4px}
+.net-l{border:1.5px solid var(--hair);border-radius:12px;padding:10px 14px;display:grid;gap:2px;background:var(--white);transition:background .3s,border-color .3s,transform .3s}
+.net-l span{font-size:.8125rem;color:var(--quiet)}
+.net-l.nokia{background:#efeafc;border-color:#5b3fb5}
+.net-l.on{border-color:var(--accent);background:var(--warnbg);transform:scale(1.02)}
+.net-l.nokia.on{background:#dcd1f7;border-color:#3b1f95}
+.net-l.ok{border-color:var(--good);background:var(--goodbg)} .net-l.nokia.ok{background:#dcd1f7;border-color:var(--good)}
+.net-arrow{text-align:center;color:var(--quiet);font-size:.8125rem;line-height:1.2;font-weight:600}
+.net-checks{display:grid;gap:8px}
+.net-btn{text-align:left;border:1.5px solid var(--hair);border-radius:12px;background:var(--white);padding:10px 12px;display:grid;gap:3px;cursor:pointer;min-height:44px;font:inherit;color:inherit}
+.net-btn span{font-size:.8125rem;color:var(--quiet)}
+.net-btn.on{border-color:var(--accent)}
+.net-io{display:grid;gap:8px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.net-io pre{margin:4px 0 0;background:#1d1f22;color:#e8e6e1;border-radius:10px;padding:10px;font-size:.75rem;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.net-out{border:2px solid var(--good);background:var(--goodbg);border-radius:12px;padding:10px 12px;display:grid;gap:4px}
+.net-out p{margin:0}
+.dim{opacity:.25;transition:opacity .4s}
+body.net-present #network{position:fixed;inset:0;z-index:60;background:var(--ground);overflow:auto;padding:24px clamp(16px,4vw,56px)}
+body.net-present #network .net-l{padding:16px 20px} body.net-present #network .net-l b{font-size:1.25rem}
+@media (max-width:640px){.net-io{grid-template-columns:minmax(0,1fr)}}
+.h-read{border:0;background:none;cursor:pointer;font-size:1rem;padding:2px 4px;min-width:32px;min-height:32px;float:right;margin:-4px -6px 0 4px}
 .v-adv{font-size:.875rem;margin:6px 4px 0;padding:8px 10px;border-left:3px solid var(--accent);background:var(--warnbg)}
 .v-field{display:grid;gap:6px}
 .v-plain{margin:0;padding-left:1.1rem;display:grid;gap:6px;font-size:.9375rem}
@@ -356,6 +377,7 @@ body.vault-only .vault-back{background:var(--ground)}
   <section id="data" aria-labelledby="h-data"></section>
   <section id="trip" aria-labelledby="h-trip" tabindex="-1"></section>
   <section id="bizview" aria-labelledby="h-bizview"></section>
+  <section id="network" aria-labelledby="h-network"></section>
   <section id="access" aria-labelledby="h-access"></section>
   <section id="test" aria-labelledby="h-test"></section>
   <section id="session" aria-labelledby="h-session"></section>
@@ -831,10 +853,10 @@ function renderSession(){
      <p class="small muted">The export has one row per organisation (what was shared, for how long, seconds to decide, both ratings), the final answer, and the full log.</p></div></div>`;
 }
 
-function renderAll(){renderBar();renderWho();renderData();renderTrip();renderBizView();renderAccess();renderTest();renderSession();renderVault();}
+function renderAll(){renderBar();renderWho();renderData();renderTrip();renderBizView();renderNet();renderAccess();renderTest();renderSession();renderVault();}
 function renderLive(){ // re-render pieces that depend on decisions, keep focus
   const ae=document.activeElement, key=ae&&(ae.id||ae.getAttribute('name')&&ae.getAttribute('name')+'|'+ae.value||(ae.dataset&&ae.dataset.act?ae.dataset.act+'|'+(ae.dataset.b||ae.dataset.id||''):''));
-  renderBar();renderData();renderTrip();renderBizView();renderAccess();renderTest();
+  renderBar();renderData();renderTrip();renderBizView();renderNet();renderAccess();renderTest();
   restore(key); if(V.open) renderVault(true); if(typeof BA!=='undefined'&&BA.open) renderBApp(true);
 }
 function restore(key){ if(!key) return; let el=document.getElementById(key);
@@ -966,7 +988,7 @@ function staffInner(b){
     return `<li class="${cls}"><span class="k">${esc(f.label)}</span><span class="vv">${cls==='no'?'<span aria-hidden="true">🔒 </span>':''}${esc(v)}${!cls&&f.verified?`<span class="from">Checked by: ${esc(f.verified)}</span>`:''}</span></li>`;}).join('');
   return `<div class="cust"><div class="avatar sm" aria-hidden="true">${esc(nm[0])}</div><div><b>${esc(nm)}</b><br><span class="tiny muted">Booking ${esc(o.ref)} · ${esc(o.item)}</span></div></div>
       <p class="label" style="margin-top:4px">From the customer's vault</p>
-      <ul class="slots">${rows}</ul>
+      <ul class="slots">${rows}${(typeof NET!=='undefined'?netDone(b.id):[]).map(c=>`<li><span class="k">Network check · ${esc(c.api)}</span><span class="vv">✓ ${esc(c.sees)}<span class="from">Answer from the mobile network via Nokia Network as Code. No data received.</span></span></li>`).join('')}</ul>
       <p class="tiny muted">${d&&g.length&&!S.revoked[b.id]?'Available '+esc(lc1(DUR[d.dur]))+'. ':''}This screen cannot show anything else about the customer.</p>`;
 }
 function auditPanel(b){
@@ -1073,7 +1095,7 @@ const VIC={
   me:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg>',
   share:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'
 };
-const helmi=(html)=>`<div class="helmi"><div class="h-av" aria-hidden="true">H</div><div class="bubble"><span class="sr">Helmi: </span>${html}</div></div>`;
+const helmi=(html)=>`<div class="helmi"><div class="h-av" aria-hidden="true">H</div><div class="bubble">${typeof canSpeak!=='undefined'&&canSpeak?'<button class="h-read" data-v="readh" aria-label="Read this aloud" title="Read aloud">🔊</button>':''}<span class="sr">Helmi: </span>${html}</div></div>`;
 const vHolder=(sid)=>sid==='vault'?'your access profile':S.arch==='A'?srcOf(sid).holder:'your server';
 const hName=(sid)=>sid==='vault'?'your access profile':srcOf(sid).holder;
 function pending(){ return biz().filter(b=>!S.dec[b.id]); }
@@ -1153,7 +1175,12 @@ function vShare(){
   return (on.length?helmi(`${on.length} place${on.length>1?'s':''} can see some of your data. Tap one to see exactly what they see, and what they don't.`):helmi('Nobody can see your data. Only you, and me when you ask.'))+
    on.map(b=>{const d=S.dec[b.id]; return `<div class="v-card"><button class="v-cardhead" data-v="see" data-b="${b.id}"><span><b class="v-big">${esc(b.name)}</b><br><span class="small muted">Sees ${d.fields.length} of ${b.fields.length} things they asked for · ${esc(DUR[d.dur].replace('she takes','you take'))}</span></span><span aria-hidden="true">›</span></button><button class="v-btn alt" data-v="see" data-b="${b.id}">See what ${esc(b.name)} sees</button><button class="v-btn danger" data-v="stop" data-b="${b.id}">Stop sharing</button></div>`;}).join('')+
    (no.length?`<h3 class="v-h">You said no</h3><ul class="v-list">${no.map(b=>`<li><button data-v="see" data-b="${b.id}"><span><b>${esc(b.name)}</b><br><span class="small muted">Sees nothing</span></span><span aria-hidden="true">›</span></button></li>`).join('')}</ul>`:'')+
-   (stopped.length?`<h3 class="v-h">Stopped</h3>`+stopped.map(b=>`<div class="v-card"><button class="v-cardhead" data-v="see" data-b="${b.id}"><span><b>${esc(b.name)}</b><br><span class="small muted">Can't see anything now</span></span><span aria-hidden="true">›</span></button><button class="v-btn alt" data-v="restart" data-b="${b.id}">Share again</button></div>`).join(''):'');
+   (stopped.length?`<h3 class="v-h">Stopped</h3>`+stopped.map(b=>`<div class="v-card"><button class="v-cardhead" data-v="see" data-b="${b.id}"><span><b>${esc(b.name)}</b><br><span class="small muted">Can't see anything now</span></span><span aria-hidden="true">›</span></button><button class="v-btn alt" data-v="restart" data-b="${b.id}">Share again</button></div>`).join(''):'')+netCard();
+}
+function netCard(){ const n=netP(), allow=S.netAllow!==false;
+  return `<h3 class="v-h">Checked by the network</h3><div class="v-card"><p class="small">Some places only need a yes or a no. I can ask the mobile network instead of sharing your data: they get the answer, never your location or your ID.</p>
+   <label class="sw-row"><span class="sw-txt"><b>Allow network checks for this trip</b><span class="small muted">Through Nokia Network as Code, via your mobile operator</span></span><input type="checkbox" class="sw-in" data-vchg="netallow" ${allow?'checked':''}><span class="sw-ui" aria-hidden="true"></span></label>
+   <ul class="v-plain">${n.checks.map(c=>`<li><b>${esc(bz(c.biz).name)}</b>: ${esc(c.q.replace(new RegExp(first()+"(\\'s)?",'g'),m=>m.endsWith("'s")?'your':'you').replace(/^Is you /,'Are you ').replace(/^Can you's/,'Can your'))}<br><span class="small ${S.net&&S.net[c.id]?'':'muted'}">${S.net&&S.net[c.id]?'✓ Answered: '+esc(c.sees)+' Nothing else was shared.':'Not asked yet'}</span></li>`).join('')}</ul></div>`;
 }
 function vSee(b){
   const d=S.dec[b.id], g=granted(b.id), tot=P().stats.total;
@@ -1196,6 +1223,7 @@ function renderVault(keepFocus){
   const pm=document.body.classList.contains('vault-only');
   $('v-top').innerHTML=`${sub?`<button class="v-ib" data-v="back" aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>`:`<span class="v-who" aria-hidden="true">${V.tab==='start'?'':esc(first()[0])}</span>`}
     <h2 id="v-title" tabindex="-1">${esc(vTitle())}</h2>
+    ${canSpeak?`<button class="v-ib" data-v="readtoggle" aria-pressed="${READ}" aria-label="Read screens aloud" title="Read screens aloud" style="${READ?'background:var(--ink);color:#fff;':''}border-radius:50%">🔊</button>`:''}
     ${pm?(STUDY?'':`<button class="v-ib txt" data-act="pmode-off">Researcher</button>`):`<button class="v-ib" data-v="close" aria-label="Close the vault app"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`}`;
   if(S.task){ const r=taskCheck(); if(r==='end'){ V.tab='finish'; V.biz=null; V.src=null; V.see=null; body=vFinish(); } }
   $('v-screen').innerHTML=(S.task?taskBanner():'')+body;
@@ -1204,7 +1232,7 @@ function renderVault(keepFocus){
   $('v-nav').innerHTML=VTABS.map(([k,l])=>`<button data-v="tab" data-t="${k}" ${V.tab===k?'aria-current="page"':''}>${VIC[k]}<span>${l}${k==='home'&&np?` <span class="badge" aria-label="${np} new requests">${np}</span>`:''}</span></button>`).join('');
   if(key){ let f=null; if(key.startsWith('v:')){const [a,b]=key.slice(2).split('|'); f=el.querySelector(`[data-v="${a}"][data-b="${b}"],[data-v="${a}"][data-s="${b}"],[data-v="${a}"][data-t="${b}"]`)||el.querySelector(`[data-v="${a}"]`);} else if(key.startsWith('k:')) f=el.querySelector(`[data-k="${key.slice(2)}"]`); else f=document.getElementById(key); if(f) f.focus({preventScroll:true}); }
 }
-function vGo(o){ Object.assign(V,o); V.shown=50; if(o.src) V.tbl=0; renderVault(); $('v-screen').scrollTop=0; const h=$('v-title'); if(h) h.focus({preventScroll:true});
+function vGo(o){ Object.assign(V,o); V.shown=50; if(o.src) V.tbl=0; renderVault(); $('v-screen').scrollTop=0; const h=$('v-title'); if(h) h.focus({preventScroll:true}); if(READ) setTimeout(readScreen,150);
   if(V.tab==='data'&&V.src){ const key=S.arch+V.src; if(!V.fetched[key]){ setTimeout(()=>{V.fetched[key]=true; if(V.open&&V.src) renderVault(true);},700);} } }
 function openVault(target){
   V.ret=document.activeElement; V.open=true; V.redo=false;
@@ -1223,6 +1251,8 @@ document.addEventListener('click',e=>{
   const bv=e.target.closest('[data-act="bv"]'); if(bv){ S.bv=bv.dataset.b; renderBizView(); restore('bvt-'+S.bv); return; }
   const v=e.target.closest('[data-v]'); if(!v) return; const a=v.dataset.v, bid=v.dataset.b;
   if(a==='close'){ closeVault(); return; }
+  if(a==='readh'){ const bb=v.closest('.bubble'); speak(bb?bb.innerText.replace(/^🔊\s*/,'').replace(/^Helmi:\s*/,''):''); return; }
+  if(a==='readtoggle'){ READ=!READ; try{ localStorage.setItem('tos-read',READ?'1':'0'); }catch(e){} if(!READ&&canSpeak) speechSynthesis.cancel(); renderVault(true); if(READ) speak('Read aloud is on. Helmi will read each screen to you.'); log('read aloud',READ?'on':'off'); return; }
   if(a==='begin'){ const c=(($('vcode').value||'').trim()||randCode()).slice(0,24); let per=S.persona, adv=S.advice, how='link';
     if(!FIXED){ const g=GROUPS[groupOf(c)]; per=g[0]; adv=HP.has('advice')?HP.get('advice')==='on':g[1]; how='code'; }
     S=fresh(per,S.arch,c); S.advice=adv; S.assign=how; log('study start',S.pid+' '+S.persona+' advice '+(adv?'on':'off')+' ('+how+')'); vGo({tab:'meet'}); return; }
@@ -1462,6 +1492,98 @@ document.addEventListener('click',async e=>{
   if(a==='st-export'){ exportCombined(); return; }
   if(a==='st-clear'){ ST.rows=[]; renderStudy(); return; }
 });
+/* ================================================================== network layer (Nokia Network as Code, simulated) */
+const NET={
+ aino:{phone:'+358400000101',checks:[
+  {id:'loc',biz:'rail',api:'Device Location Verification',path:'/location-verification/v1/verify',
+   q:'Is Aino inside the gate area at Tampere-Pirkkala airport (200 m), in the last 2 minutes?',why:'So the assistant with the aisle chair is at the gate when she is.',
+   body:{device:{phoneNumber:'+358400000101'},area:{areaType:'CIRCLE',center:{latitude:61.4141,longitude:23.6044},radius:200},maxAge:120},
+   res:{verificationResult:'TRUE',lastLocationTime:'2026-11-12T07:18:42+02:00'},sees:'At the gate area at 07:18. Yes.',instead:'5,888 location points from her phone (3 months)'},
+  {id:'num',biz:'hotel',api:'Number Verification',path:'/number-verification/v0/verify',
+   q:'Is the phone opening room 112 really the one on Aino\'s booking?',why:'Her phone becomes the room key, so she never needs the 115 cm counter.',
+   body:{phoneNumber:'+358400000101'},res:{devicePhoneNumberVerified:true},sees:'Booking phone verified. Yes.',instead:'A scan of her ID card at the desk'}]},
+ elina:{phone:'+358400000202',checks:[
+  {id:'loc',biz:'rail',api:'Device Location Verification',path:'/location-verification/v1/verify',
+   q:'Is Elina at the main entrance of Tampere station (100 m), in the last 2 minutes?',why:'So the assistant walks out to meet her as she arrives.',
+   body:{device:{phoneNumber:'+358400000202'},area:{areaType:'CIRCLE',center:{latitude:61.4985,longitude:23.7735},radius:100},maxAge:120},
+   res:{verificationResult:'TRUE',lastLocationTime:'2026-11-12T07:41:05+02:00'},sees:'At the station entrance at 07:41. Yes.',instead:'5,888 location points from her phone (3 months)'},
+  {id:'qod',biz:'rail',api:'Quality on Demand',path:'/quality-on-demand/v0/sessions',
+   q:'Can Elina\'s phone get a steady connection for a 30-minute video call with a sighted guide at Helsinki station?',why:'If the assistant is late, a live guide can describe the way through her camera without the picture freezing.',
+   body:{device:{phoneNumber:'+358400000202'},qosProfile:'QOS_M',duration:1800},res:{sessionId:'3fa85f64-5717',qosStatus:'AVAILABLE'},sees:'Steady connection booked for 30 minutes.',instead:'Nothing: the network only boosts the call, it reads nothing'},
+  {id:'num',biz:'hotel',api:'Number Verification',path:'/number-verification/v0/verify',
+   q:'Is the phone checking in really the one on Elina\'s booking?',why:'She checks in on her phone with VoiceOver, so no paper form or touch screen.',
+   body:{phoneNumber:'+358400000202'},res:{devicePhoneNumberVerified:true},sees:'Booking phone verified. Yes.',instead:'Her ID details, read out by a stranger at the desk'}]},
+ sanna:{phone:'+358400000303',checks:[
+  {id:'loc',biz:'rail',api:'Device Location Verification',path:'/location-verification/v1/verify',
+   q:'Is Sanna at Tampere bus station (150 m), in the last 2 minutes?',why:'So the driver holds seat 3 for her until 07:30 instead of giving it away.',
+   body:{device:{phoneNumber:'+358400000303'},area:{areaType:'CIRCLE',center:{latitude:61.4945,longitude:23.7718},radius:150},maxAge:120},
+   res:{verificationResult:'TRUE',lastLocationTime:'2026-11-12T07:24:10+02:00'},sees:'At the bus station at 07:24. Yes.',instead:'5,888 location points from her phone (3 months)'},
+  {id:'num',biz:'hotel',api:'Number Verification',path:'/number-verification/v0/verify',
+   q:'Is the phone opening room 714 really the one on Sanna\'s booking?',why:'Her phone is the room key, and the receipt goes straight to her email.',
+   body:{phoneNumber:'+358400000303'},res:{devicePhoneNumberVerified:true},sees:'Booking phone verified. Yes.',instead:'A scan of her ID card at the desk'}]},
+ laura:{phone:'+358400000404',checks:[
+  {id:'loc',biz:'rail',api:'Device Location Verification',path:'/location-verification/v1/verify',
+   q:'Is Laura at Helsinki West Harbour terminal (200 m), in the last 2 minutes?',why:'So staff meet her at the car-deck lift with the pushchair.',
+   body:{device:{phoneNumber:'+358400000404'},area:{areaType:'CIRCLE',center:{latitude:60.1513,longitude:24.9157},radius:200},maxAge:120},
+   res:{verificationResult:'TRUE',lastLocationTime:'2026-11-12T10:02:31+02:00'},sees:'At the terminal at 10:02. Yes.',instead:'5,888 location points from her phone (3 months)'},
+  {id:'num',biz:'hotel',api:'Number Verification',path:'/number-verification/v0/verify',
+   q:'Is the phone checking in really the one on Laura\'s booking?',why:'She checks in on her phone while Onni sleeps, with no queue at the desk.',
+   body:{phoneNumber:'+358400000404'},res:{devicePhoneNumberVerified:true},sees:'Booking phone verified. Yes.',instead:'A scan of her ID card at the desk'}]}
+};
+const netP=()=>NET[S.persona];
+const netDone=bid=>(netP().checks.filter(c=>c.biz===bid&&S.net&&S.net[c.id]));
+const NETSTEPS=[
+ ['biz','The business asks Helmi a yes-or-no question, instead of asking for data.'],
+ ['helmi','Helmi checks the question against what the person allowed, and turns it into a network API call.'],
+ ['nac','Nokia Network as Code receives one standard API call and routes it to the right operator.'],
+ ['op','The mobile operator\'s network answers from what it already knows about the SIM. No app on the phone, no GPS history.'],
+ ['ans','The answer goes back the same way. The business gets yes or no. Nothing else leaves the network.']];
+let NETRUN=null;
+function netStack(active,done){
+  const L=[['biz','Business','asks a yes-or-no question'],['helmi','Helmi','AI agent working for '+first()+', inside her rules'],['nac','Nokia Network as Code','one standard API across operators'],['op','Mobile operator','the network answers from the SIM']];
+  const on=k=>done||active===k||(active==='ans');
+  return `<div class="net-stack" role="list" aria-label="Who does what, in order">${L.map(([k,t,sub],i)=>`<div role="listitem" class="net-l ${on(k)?'on':''} ${done?'ok':''} ${k==='nac'?'nokia':''}"><b>${i+1}. ${esc(t)}</b><span>${esc(sub)}</span></div>`).join(`<div class="net-arrow" aria-hidden="true">${active==='ans'||done?'↑ answer: yes / no':'↓ question'}</div>`)}</div>
+   <p class="small"><b>Where Nokia stands:</b> between apps like Helmi and the mobile operators. Nokia doesn't hold anyone's data or own the customer. It turns what networks already know into one simple API that works across operators, paid per call.</p>`;
+}
+function renderNet(){
+  const el=$('network'); if(!el) return; const n=netP(); if(NETRUN&&!n.checks.find(x=>x.id===NETRUN.id)) NETRUN=null; const r=NETRUN; const allow=S.netAllow!==false;
+  const c=r?n.checks.find(x=>x.id===r.id):null; const step=r?r.step:-1;
+  el.innerHTML=`<div class="sec-head"><p class="label">4b · The network layer</p><h2 id="h-network">Where Nokia fits: proving, not sharing</h2>
+    <p class="lede">Some questions don't need ${first()}'s data at all, only a yes or a no. Is she at the gate? Is this really her phone? Helmi asks the mobile network through Nokia's Network as Code APIs, and the business gets the answer, never the data behind it.</p>
+    <div class="row"><button class="btn sm" data-act="net-present">${document.body.classList.contains('net-present')?'Close presentation':'Present full screen'}</button>
+    <label class="row small" style="gap:8px;cursor:pointer"><input type="checkbox" id="net-allow" ${allow?'checked':''}> ${esc(first())} allows network checks for this trip</label></div></div>
+   <div class="grid2"><div class="card" style="display:grid;gap:10px;align-content:start">${netStack(step>=0&&step<NETSTEPS.length?NETSTEPS[step][0]:null,!!(r&&!r.refused&&step>=NETSTEPS.length))}
+     <p class="small" role="status" aria-live="polite" style="min-height:3em">${r?(r.refused?'<b>Helmi refused.</b> '+esc(first())+' has not allowed network checks, so nothing was asked.':(step<NETSTEPS.length?'<b>Step '+(step+1)+' of 5.</b> '+esc(NETSTEPS[step][1]):'<b>Done.</b> '+esc(bz(c.biz).name)+' got its answer.')):'Choose a check to run it step by step.'}</p></div>
+    <div class="card" style="display:grid;gap:10px;align-content:start;grid-template-columns:minmax(0,1fr)">
+     <h3>Run a check</h3>
+     <div class="net-checks">${n.checks.map(x=>`<button class="net-btn ${r&&r.id===x.id?'on':''}" data-act="net-run" data-id="${x.id}"><b>${esc(bz(x.biz).name)} · ${esc(x.api)}</b><span>${esc(x.q)}</span>${S.net&&S.net[x.id]?'<span class="pill">done</span>':''}</button>`).join('')}</div>
+     ${c&&!r.refused?`<div class="net-io">
+       <div class="${step>=2?'':'dim'}"><p class="label">API call · ${esc(c.api)}</p><pre>POST ${esc(c.path)}\n${esc(JSON.stringify(c.body,null,1))}</pre></div>
+       <div class="${step>=4?'':'dim'}"><p class="label">Network answer</p><pre>${esc(JSON.stringify(c.res,null,1))}</pre></div></div>
+       <div class="net-out ${step>=5?'':'dim'}"><p><b>${esc(bz(c.biz).name)} sees:</b> ✓ ${esc(c.sees)}</p><p><b>It never receives:</b> ${esc(c.instead)}.</p><p class="small muted">Why it asks: ${esc(c.why)}</p></div>`:''}
+     <p class="tiny muted">Simulated. The calls follow the shape of the open CAMARA APIs that Nokia offers through Network as Code (Device Location Verification, Number Verification, Quality on Demand). Phone numbers are fictional.</p>
+    </div></div>`;
+}
+function netRun(id){
+  clearTimeout(NETRUN&&NETRUN.timer); const c=netP().checks.find(x=>x.id===id);
+  if(S.netAllow===false){ NETRUN={id,step:-1,refused:true}; audit(c.biz,'Network check: '+c.api,'blocked: network checks not allowed',''); renderNet(); log('net refused',id); return; }
+  NETRUN={id,step:0};
+  const tick=()=>{ renderNet(); if(NETRUN.step<NETSTEPS.length){ NETRUN.step++; NETRUN.timer=setTimeout(tick,1500); }
+    else { S.net=S.net||{}; S.net[id]=true; audit(c.biz,'Network check: '+c.api,'answered: '+c.sees,'Nokia Network as Code (yes/no only)'); log('net check',id); renderBizView(); if(V.open) renderVault(true); } };
+  tick();
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-act^="net-"]'); if(!b) return;
+  if(b.dataset.act==='net-run') netRun(b.dataset.id);
+  if(b.dataset.act==='net-present'){ document.body.classList.toggle('net-present'); renderNet(); $('network').scrollIntoView({block:'start'}); }
+});
+document.addEventListener('change',e=>{ if(e.target.id==='net-allow'||e.target.dataset.vchg==='netallow'){ S.netAllow=e.target.checked; log('network checks',S.netAllow?'allowed':'not allowed'); renderNet(); if(V.open) renderVault(true); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.body.classList.contains('net-present')){ document.body.classList.remove('net-present'); renderNet(); } });
+/* read aloud */
+const canSpeak=('speechSynthesis' in window);
+let READ=false; try{ READ=localStorage.getItem('tos-read')==='1'; }catch(e){}
+function speak(t){ if(!canSpeak||!t) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t.replace(/\s+/g,' ').trim()); u.lang='en-GB'; u.rate=0.95; const v=speechSynthesis.getVoices().find(v=>/^en(-|_)GB/i.test(v.lang))||speechSynthesis.getVoices().find(v=>/^en/i.test(v.lang)); if(v) u.voice=v; speechSynthesis.speak(u); }
+function readScreen(){ const b=document.querySelector('#v-screen .helmi .bubble'); const h=$('v-title'); speak((h?h.innerText+'. ':'')+(b?b.innerText.replace(/^Helmi:\s*/,''):'')); }
+
 /* ================================================================== business app */
 let BA={open:false,biz:'hotel',tab:'book',ret:null};
 const bizOnly=()=>document.body.classList.contains('biz-only');
