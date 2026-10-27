@@ -1379,7 +1379,7 @@ function filmUrl(){ return 'films/'+FILMS[S.persona]+'_player.html'; }
 let filmPoll=null;
 function vFilm(){
   return helmi(`One last thing before the questions: a short film (under 3 minutes) about ${esc(first())}'s trip, with and without the vault. It has captions. Press Play to start.`)+
-   `<div style="position:relative;width:100%;padding-top:calc(56.25% + 60px);border-radius:12px;overflow:hidden;background:#1b1916"><iframe id="vfilm" src="${esc(filmUrl())}#embed" title="Film: ${esc(first())}'s trip" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="autoplay"></iframe></div>
+   `<div style="position:relative;width:100%;padding-top:calc(56.25% + 60px);border-radius:12px;overflow:hidden;background:#1b1916"><iframe id="vfilm" src="${esc(filmUrl())}#embed" title="Film: ${esc(first())}'s trip" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="autoplay; fullscreen" allowfullscreen></iframe></div>
    <p class="small muted">If the film doesn't show, <a href="${esc(filmUrl())}" target="_blank" rel="noopener">open it in a new tab</a>, then come back here.</p>
    <button class="v-btn" data-v="filmdone">I've watched it</button><button class="v-btn alt" data-v="filmskip">Skip the film</button>`;
 }
