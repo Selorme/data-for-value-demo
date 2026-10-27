@@ -4,7 +4,7 @@
 
 Built by students at Tampere University for an interdisciplinary project with [Demola](https://www.demola.net), as part of the *Data for Value* challenge.
 
-**Try the demo:** https://selorme.github.io/data-for-value-demo/
+👉 **Try the demo:** https://YOUR-USERNAME.github.io/tell-once-demo/
 
 ---
 
@@ -20,34 +20,38 @@ This demo explores a different way:
 
 ## Who's in the demo
 
-Two invented personas, each with an upcoming trip:
+Four invented personas, each with an upcoming trip:
 
-| Persona | Access need | Trip |
+| Persona | Needs | Trip |
 | --- | --- | --- |
 | **Aino Laine**, 29 | Wheelchair user | Flies to Stockholm |
 | **Elina Koskinen**, 36 | Blind, travels with her guide dog Kide | Takes the train to Helsinki |
+| **Sanna Mäkinen**, 36 | No disability: everyday preferences (quiet room, vegetarian, loyalty points) | Takes the bus to Turku for work |
+| **Laura Heikkinen**, 34 | Travelling with her son Onni, 10 months, and a pushchair | Takes the ferry from Helsinki to Tallinn on holiday |
 
-Their trips involve invented businesses: an airline or rail company, a hotel, the hotel's bistro, a concert hall and an insurer. The insurer asks for far more than it needs, so you can see what saying no looks like.
+Each trip uses a different way to travel, but every persona meets the same five kinds of place: a transport company, a hotel, the hotel's own restaurant, an event and an insurer. That makes it possible to compare sharing for a disability, a family situation and no particular need.
+
+Their trips involve invented businesses: an airline, train, bus or ferry company, a hotel, the hotel's own restaurant, a concert or show and an insurer. The insurer asks for far more than it needs, so you can see what saying no looks like.
 
 ## What you can do
 
 - **Vault app.** A simple, accessible phone-style app. Answer requests, see your data and its sources, check what each business can see, and take back access. Text size can be changed.
 - **What businesses see.** Switch to the business view to see exactly what staff see, and what stays locked.
 - **Admin page.** The persona, an interactive map of where the data is held, two storage setups (data stays where it is, or one server you own), test setups such as a data breach or an outage, and tools for running a study.
-- **Study mode.** Participant links open straight into the vault with a short welcome, three timed tasks and a finish screen. Answers are sent to a Microsoft Form or saved as a file, then combined on the admin page.
+- **Study mode.** Participant links open straight into the vault with a short welcome, three timed tasks and a finish screen. The app assigns each participant a persona and Helmi advice on or off from their participant code, so the research team never chooses. Answers are sent to a Microsoft Form or saved as a file, then combined on the admin page.
 
 ### Participant links
 
 Add `#vault` to the address to open participant mode, for example:
 
 ```
-https://selorme.github.io/data-for-value-demo/#vault&persona=aino&setup=A&advice=on
+https://YOUR-USERNAME.github.io/tell-once-demo/#vault&setup=A
 ```
 
 | Setting | Values |
 | --- | --- |
-| `persona` | `aino` or `elina` (random if left out) |
-| `advice` | `on` or `off`: whether Helmi gives advice on each request (random if left out) |
+| `persona` | `aino`, `elina`, `sanna` or `laura` (for testing; if left out, the app assigns one from the participant code) |
+| `advice` | `on` or `off`: whether Helmi gives advice on big requests (if left out, assigned from the code) |
 | `setup` | `A` (data stays where it is) |
 | `form` | optional Microsoft Forms pre-filled link with `CODE` and `ANSWERS` placeholders |
 
@@ -71,7 +75,7 @@ No install or build is needed. Download `index.html` and open it in any modern b
 
 - **University:** Tampere University
 - **Partner:** Demola, *Data for Value* challenge
-- **Team:** Ruth Selorme, Towhidul, Dora, Rui
-- **Contact:** through Github
+- **Team:** _add names_
+- **Contact:** _add team email_
 
-This is a student research prototype.
+This is a student research prototype, not a real product.
