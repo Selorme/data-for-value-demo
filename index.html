@@ -312,6 +312,34 @@ body.net-present #network .net-l{padding:16px 20px} body.net-present #network .n
 @media (max-width:640px){.net-io{grid-template-columns:minmax(0,1fr)}}
 .h-read{border:0;background:none;cursor:pointer;font-size:1rem;padding:2px 4px;min-width:32px;min-height:32px;float:right;margin:-4px -6px 0 4px}
 .v-adv{font-size:.875rem;margin:6px 4px 0;padding:8px 10px;border-left:3px solid var(--accent);background:var(--warnbg)}
+.v-quick.two{grid-template-columns:1fr 1fr}
+.v-link{border:0;background:none;color:var(--accent);font-weight:600;text-decoration:underline;cursor:pointer;padding:4px;font-size:.875rem;min-height:32px}
+.v-card.tip{border:2px dashed var(--accent)}
+.v-card.ask{background:var(--panel);grid-template-columns:minmax(0,1fr)}
+.v-card{min-width:0}
+.askrow{display:flex;gap:6px;align-items:center}
+.askrow input{flex:1;min-width:0;min-height:48px;border:1.5px solid var(--ink);border-radius:12px;padding:0 12px;font-size:1rem;background:#fff}
+.askrow .v-ib.txt,.askrow .btn{min-height:48px}
+.me-msg{justify-self:end;background:var(--ink);color:#fff;border-radius:16px 4px 16px 16px;padding:8px 12px;max-width:85%;margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--hair);background:#fff;border-radius:99px;padding:6px 12px;font-size:.875rem;cursor:pointer;min-height:36px;color:var(--ink);text-align:left}
+.thread{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.thread li{max-width:85%;padding:8px 12px;border-radius:14px;display:grid;gap:2px;font-size:.9375rem;overflow-wrap:anywhere}
+.thread li.them{background:#fff;border:1px solid var(--hair);border-radius:4px 14px 14px 14px;justify-self:start}
+.thread li.me{background:var(--ink);color:#fff;border-radius:14px 4px 14px 14px;justify-self:end}
+.thread li.me .muted{color:#d9d6cf}
+.thread li.h{max-width:100%;padding:0}
+.thread li.sys{max-width:100%}
+.thread.b li.them{background:var(--panel)}
+.v-hist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.v-hist li{border-left:3px solid var(--hair);padding:6px 10px;display:grid;gap:2px;background:#fff;border-radius:0 10px 10px 0}
+.v-hist li.ok{border-left-color:var(--good)} .v-hist li.bad{border-left-color:var(--bad)}
+.rule{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rule select{min-height:40px;border:1px solid var(--ink);border-radius:10px;padding:0 8px;font-size:.9375rem;background:#fff}
+.slots li.sent .vv{color:var(--ink)}
+.slots li.sent{background:#f3effb}
+#volnote{border:1px solid var(--ink);border-radius:12px;padding:10px;font-size:1rem;font-family:inherit}
+
 .v-field{display:grid;gap:6px}
 .v-plain{margin:0;padding-left:1.1rem;display:grid;gap:6px;font-size:.9375rem}
 .v-plain li.pos::marker{color:var(--good)} .v-plain li.neg{color:var(--bad)}
@@ -614,7 +642,7 @@ const fmt=n=>Number(n).toLocaleString('en-GB');
 let S;
 function fresh(persona,arch,pidKeep){
   return {persona:persona||'aino',arch:arch||'A',open:null,openedAt:{},choice:{},dur:{},dec:{},revoked:{},rate:{},
-    srcOpen:null,breach:'',down:'',play:null,audit:[],bv:'hotel',probe:'',advice:false,final:{trust:'',why:''},pid:pidKeep||'',log:[],t0:Date.now()};
+    srcOpen:null,breach:'',down:'',play:null,audit:[],bv:'hotel',probe:'',advice:false,final:{trust:'',why:''},pid:pidKeep||'',log:[],t0:Date.now(),vol:{},volN:0,fu:{},rules:{},expired:{},after:false,afterSum:null,chat:[],ai:{asks:0,acts:0,suggest:{}},tipNo:{},msgs:{},chatOff:{},unread:{},offers:0};
 }
 S=fresh();
 const P=()=>DATA[S.persona];
@@ -629,7 +657,7 @@ function say(t){const l=$('live'); l.textContent=''; setTimeout(()=>{l.textConte
 
 /* holder of a field depends on setup */
 function holderName(src){ if(S.arch==='B') return first()+"'s own server (copy from "+srcOf(src).holder+")"; return srcOf(src).holder; }
-function granted(bid){const d=S.dec[bid]; return d&&!S.revoked[bid]?d.fields:[];}
+function granted(bid){const d=S.dec[bid]; if(S.revoked[bid]) return []; const g=d&&!S.expired[bid]?d.fields.slice():[]; (S.vol&&S.vol[bid]||[]).forEach(x=>{ if(!x.ended&&x.k&&!g.includes(x.k)) g.push(x.k); }); return g;}
 function fieldUp(k){
   const src=F(k).src, d=S.down;
   if(!d) return true;
@@ -793,10 +821,10 @@ function renderTrip(){
 
 /* ------------------------------------------------------------------ render: access */
 function renderAccess(){
-  const gs=biz().filter(b=>S.dec[b.id]&&S.dec[b.id].fields.length);
-  $('access').innerHTML=`<div class="sec-head"><p class="label">5 · Control</p><h2 id="h-access">Who can see what right now</h2></div>
-   <div class="grants">${gs.length?gs.map(b=>{const d=S.dec[b.id],rv=S.revoked[b.id];return `<div class="grant"><div><b>${esc(b.name)}</b> ${rv?'<span class="pill warn">taken back</span>':''}<p class="small">${rv?'Can no longer read anything.':'Can see: '+esc(d.fields.map(k=>F(k).label.toLowerCase()).join(', '))}</p><p class="tiny muted">${esc(DUR[d.dur])} · ${S.arch==='A'?'Helmi stops fetching for it the moment she takes access back':'Helmi stops passing it anything from her server'}</p></div>
-     ${rv?`<button class="btn alt sm" data-act="restore" data-b="${b.id}">Give access again</button>`:`<button class="btn danger sm" data-act="revoke" data-b="${b.id}">Take back access</button>`}</div>`;}).join(''):`<p class="card">Nobody has access yet. Only ${first()} can see her data.</p>`}</div>`;
+  const gs=biz().filter(b=>granted(b.id).length||S.revoked[b.id]||S.expired[b.id]);
+  $('access').innerHTML=`<div class="sec-head"><p class="label">5 · Control</p><h2 id="h-access">Who can see what right now</h2><div class="row" style="margin-top:4px">${S.after?`<button class="btn alt sm" data-act="backtrip">Go back to the trip</button>`:`<button class="btn alt sm" data-act="aftertrip">Skip to after the trip</button>`}</div>${S.after?`<p class="lede">The trip is over. Access set to “this trip only” ended on its own.</p>`:''}</div>
+   <div class="grants">${gs.length?gs.map(b=>{const d=S.dec[b.id],rv=ended(b.id)&&!granted(b.id).length,g=granted(b.id),vn=volActive(b.id).filter(x=>x.note).length;return `<div class="grant"><div><b>${esc(b.name)}</b> ${S.revoked[b.id]?'<span class="pill warn">taken back</span>':S.expired[b.id]?'<span class="pill">ended with the trip</span>':''}<p class="small">${rv?'Can no longer read anything.':'Can see: '+esc(g.map(k=>F(k).label.toLowerCase()).join(', '))+(vn?', and '+vn+' note'+(vn>1?'s':'')+' from '+first():'')}</p><p class="tiny muted">${d?esc(DUR[d.dur]):'Sent by '+first()+' without being asked'} · ${S.arch==='A'?'Helmi stops fetching for it the moment she takes access back':'Helmi stops passing it anything from her server'}</p></div>
+     ${S.revoked[b.id]?`<button class="btn alt sm" data-act="restore" data-b="${b.id}">Give access again</button>`:rv?'':`<button class="btn danger sm" data-act="revoke" data-b="${b.id}">Take back access</button>`}</div>`;}).join(''):`<p class="card">Nobody has access yet. Only ${first()} can see her data.</p>`}</div>`;
 }
 
 /* ------------------------------------------------------------------ render: test */
@@ -881,6 +909,9 @@ document.addEventListener('click',e=>{
     playTimer=setInterval(()=>{ if(!S.play) return; S.play.i++; if(S.play.i>=n){stopPlay();} renderTrip(); restore('play|'+bid); },2600); return; }
   if(a==='revoke'||a==='restore'){ setRevoked(bid,a==='revoke','admin'); renderLive(); say((a==='revoke'?'Access taken back from ':'Access given again to ')+bz(bid).name+'.'); restore((a==='revoke'?'restore':'revoke')+'|'+bid); return; }
   if(a==='export'){ exportCSV(); return; }
+  if(a==='aftertrip'){ endTrip(); renderLive(); say('The trip is over. Trip-only access ended on its own.'); restore('backtrip|'); return; }
+  if(a==='backtrip'){ undoTrip(); renderLive(); say('Back to the trip.'); restore('aftertrip|'); return; }
+  if(a==='bmsg'){ openBApp(bid); BA.tab='msg'; renderBApp(); return; }
   if(a==='reset'){ if(!confirmReset()) return; stopPlay(); S=fresh(S.persona,S.arch); closeVault(true); renderAll(); say('New session started.'); window.scrollTo(0,0); return; }
 });
 function confirmReset(){ return true; }
@@ -900,7 +931,11 @@ document.addEventListener('change',e=>{
   if(c==='down'){ S.down=t.value; log('outage',t.value||'none'); renderBar(); renderData(); renderTrip(); renderBizView(); $('down-out').innerHTML=outageResult(); return; }
   if(c==='trust'){ S.final.trust=t.value; log('trust',t.value); return; }
 });
-document.addEventListener('input',e=>{ if(e.target.dataset&&e.target.dataset.vchg==='fincomment'){ (S.study=S.study||{}).comment=e.target.value.slice(0,1000); const a=document.querySelector('a[data-v=sent]'); if(a) a.href=sendUrl(); } });
+document.addEventListener('submit',e=>{ if(e.target.id==='askform'){ e.preventDefault(); askHelmi(($('vask')||{}).value); }
+  if(e.target.id==='chatform'){ e.preventDefault(); const bid=e.target.dataset.b, i=$('chatin'); if(!i.value.trim()) return; meSend(bid,i.value); renderLive(); renderVault(); const t=$('v-screen'); t.scrollTop=t.scrollHeight; const n=$('chatin'); if(n) n.focus({preventScroll:true}); }
+  if(e.target.id==='bchatform'){ e.preventDefault(); const bid=e.target.dataset.b, i=$('bchatin'); if(bizSend(bid,i.value,'business app')){ renderLive(); const n=$('bchatin'); if(n){ n.value=''; n.focus(); } } } });
+document.addEventListener('input',e=>{ if(e.target.dataset&&e.target.dataset.vchg==='volnote'){ V.volNote=e.target.value.slice(0,VOLMAX); const n=Object.values(V.volPick||{}).filter(Boolean).length+(V.volNote.trim()?1:0); const bt=document.querySelector('[data-v=volsend]'); if(bt){ bt.disabled=!n; bt.textContent=n?'Send '+n+' thing'+(n>1?'s':'')+' to '+bz(bt.dataset.b).name:'Pick something to send'; } return; }
+  if(e.target.dataset&&e.target.dataset.vchg==='fincomment'){ (S.study=S.study||{}).comment=e.target.value.slice(0,1000); const a=document.querySelector('a[data-v=sent]'); if(a) a.href=sendUrl(); } });
 document.addEventListener('input',e=>{const t=e.target,c=t.dataset.chg; if(c==='pid') S.pid=t.value; if(c==='why') S.final.why=t.value;});
 document.addEventListener('focusout',e=>{const c=e.target.dataset&&e.target.dataset.chg; if(c==='why'&&S.final.why) log('why',S.final.why.slice(0,80)); if(c==='pid'&&S.pid) log('participant',S.pid);});
 
@@ -954,10 +989,11 @@ function decide(bid,fields,dur,from){
   b.fields.forEach(k=>{ if(fields.includes(k)) audit(bid,F(k).label,fieldUp(k)?'delivered':'failed: source offline',via(k)); else audit(bid,F(k).label,'withheld: she said no',''); });
   if(b.owner&&S.dec[b.owner]&&S.dec[b.owner].fields.length) audit(bid,'Anything '+first()+' gave '+bz(b.owner).name,'blocked: belongs to another organisation','');
   log('decide',bid+' shared ['+fields.join(',')+'] of '+b.fields.length+' for '+dur+' in '+S.dec[bid].secs+'s via '+from);
+  if(bid==='hotel'&&fields.length&&!msgs('hotel').length&&!window.__noAutoFU){ const sess=S; setTimeout(()=>{ if(S!==sess) return; if(bizSend('hotel',FUQ.hotel.q,'auto')){ renderLive(); say(bz('hotel').name+' sent you a message.'); } },4000); }
 }
 function setRevoked(bid,on,from){
-  if(on){S.revoked[bid]=true; audit(bid,'All items','access ended: '+first()+' took it back','');}
-  else {delete S.revoked[bid]; audit(bid,'All items','access given again','');}
+  if(on){volActive(bid).forEach(x=>x.ended=true); S.revoked[bid]=true; audit(bid,'All items','access ended: '+first()+' took it back','');}
+  else {delete S.revoked[bid]; delete S.expired[bid]; audit(bid,'All items','access given again','');}
   log(on?'revoke':'restore',bid+' via '+from);
 }
 
@@ -967,7 +1003,7 @@ function staffScreen(b){
   const nm=p.name.split(' ')[0]+' '+p.name.split(' ')[1][0]+'.';
   const rows=b.fields.map(k=>{const f=F(k); let v,cls='';
     if(!d){v='Waiting for the customer to answer'; cls='wait';}
-    else if(S.revoked[b.id]){v='Access ended'; cls='no';}
+    else if(ended(b.id)){v=S.expired[b.id]&&!S.revoked[b.id]?'Access ended: the trip is over':'Access ended'; cls='no';}
     else if(!g.includes(k)){v='Not shared'; cls='no';}
     else if(!fieldUp(k)){v='Could not be fetched: source offline. Ask the customer.'; cls='wait';}
     else v=f.value;
@@ -981,26 +1017,27 @@ function staffInner(b){
   const nm=p.name.split(' ')[0]+' '+p.name.split(' ')[1][0]+'.';
   const rows=b.fields.map(k=>{const f=F(k); let v,cls='';
     if(!d){v='Waiting for the customer to answer'; cls='wait';}
-    else if(S.revoked[b.id]){v='Access ended'; cls='no';}
+    else if(ended(b.id)){v=S.expired[b.id]&&!S.revoked[b.id]?'Access ended: the trip is over':'Access ended'; cls='no';}
     else if(!g.includes(k)){v='Not shared'; cls='no';}
     else if(!fieldUp(k)){v='Could not be fetched: source offline. Ask the customer.'; cls='wait';}
     else v=f.value;
     return `<li class="${cls}"><span class="k">${esc(f.label)}</span><span class="vv">${cls==='no'?'<span aria-hidden="true">🔒 </span>':''}${esc(v)}${!cls&&f.verified?`<span class="from">Checked by: ${esc(f.verified)}</span>`:''}</span></li>`;}).join('');
   return `<div class="cust"><div class="avatar sm" aria-hidden="true">${esc(nm[0])}</div><div><b>${esc(nm)}</b><br><span class="tiny muted">Booking ${esc(o.ref)} · ${esc(o.item)}</span></div></div>
       <p class="label" style="margin-top:4px">From the customer's vault</p>
-      <ul class="slots">${rows}${(typeof NET!=='undefined'?netDone(b.id):[]).map(c=>`<li><span class="k">Network check · ${esc(c.api)}</span><span class="vv">✓ ${esc(c.sees)}<span class="from">Answer from the mobile network via Nokia Network as Code. No data received.</span></span></li>`).join('')}</ul>
-      <p class="tiny muted">${d&&g.length&&!S.revoked[b.id]?'Available '+esc(lc1(DUR[d.dur]))+'. ':''}This screen cannot show anything else about the customer.</p>`;
+      <ul class="slots">${rows}${(typeof NET!=='undefined'?netDone(b.id):[]).map(c=>`<li><span class="k">Network check · ${esc(c.api)}</span><span class="vv">✓ ${esc(c.sees)}<span class="from">Answer from the mobile network via Nokia Network as Code. No data received.</span></span></li>`).join('')}${volActive(b.id).map(x=>`<li class="sent"><span class="k">${x.k?esc(F(x.k).label):'Note from the customer'}</span><span class="vv">${x.k?(fieldUp(x.k)?esc(F(x.k).value):'Could not be fetched: source offline.'):'“'+esc(x.note)+'”'}<span class="from">Sent by the customer. You didn’t ask for this.</span></span></li>`).join('')}${(()=>{const m=msgs(b.id).filter(x=>x.from==='me').pop(); return m?`<li class="sent"><span class="k">Latest message from the customer</span><span class="vv">“${esc(m.text)}”</span></li>`:'';})()}</ul>
+      <p class="tiny muted">${d&&g.length&&!ended(b.id)?'Available '+esc(lc1(DUR[d.dur]))+'. ':''}This screen cannot show anything else about the customer.</p>`;
 }
 function auditPanel(b){
   const d=S.dec[b.id], g=granted(b.id), tot=P().stats.total, reach=g.reduce((a,k)=>a+F(k).rows,0);
-  const outside=g.filter(k=>!b.fields.includes(k)).length;
+  const outside=g.filter(k=>!b.fields.includes(k)&&!volKeys(b.id).includes(k)).length; const nv=volActive(b.id).length;
   const blocked=S.audit.filter(a=>a.bid===b.id&&a.result.startsWith('blocked')).length;
   const ck=(ok,txt)=>`<li><span class="ck ${ok?'ok':'bad'}" aria-hidden="true">${ok?'✓':'✗'}</span><span><span class="sr">${ok?'Passed: ':'Failed: '}</span>${txt}</span></li>`;
   let checks=[
-    !d?ck(true,'No answer yet, so it sees nothing.'):ck(true,`Sees ${g.length} item${g.length===1?'':'s'}, all approved by ${first()}.`),
+    !d?ck(true,'No answer yet, so it sees nothing.'):ck(true,`Sees ${g.length} item${g.length===1?'':'s'}${nv?' and notes':''}, all approved by ${first()}.`),
     ck(outside===0,`Nothing outside its own request. It cannot reach ${fmt(tot-reach)} of ${fmt(tot)} rows.`),
-    ck(true,d?(S.revoked[b.id]?'Access has ended.':'Access ends: '+lc1(DUR[d.dur])+'.'):'No access granted.'),
+    ck(true,d?(ended(b.id)?(S.expired[b.id]&&!S.revoked[b.id]?'Access ended on its own when the trip was over.':'Access has ended.'):'Access ends: '+lc1(DUR[d.dur])+'.'):'No access granted.'),
   ];
+  if(nv) checks.push(ck(true,`${nv} item${nv===1?'':'s'} sent by ${first()} without being asked, shown as such on their screen.`));
   if(b.owner){const k=S.dec[b.owner]?granted(b.owner).length:0; checks.push(ck(true,`Cannot see what ${esc(bz(b.owner).name)} received (${k} item${k===1?'':'s'}), even with the same owner.`));}
   checks.push(ck(true,`${blocked} blocked read attempt${blocked===1?'':'s'}, all logged.`));
   const table=`<div class="tbl" tabindex="0" role="region" aria-label="Requested items and what was delivered"><table><thead><tr><th scope="col">Item</th><th scope="col">Her answer</th><th scope="col">On their screen</th><th scope="col">Comes from</th></tr></thead><tbody>${b.fields.map(k=>{const sh=g.includes(k); return `<tr><td>${esc(F(k).label)}</td><td>${!d?'not answered':sh?'Share':"Don't share"}</td><td>${sh&&fieldUp(k)?'yes':'no'}</td><td>${sh?esc(via(k)):'–'}</td></tr>`;}).join('')}</tbody></table></div>`;
@@ -1012,15 +1049,16 @@ function auditPanel(b){
 }
 function renderBizView(){
   const b=bz(S.bv)||biz()[0];
-  $('bizview').innerHTML=`<div class="sec-head"><p class="label">4 · The other side</p><h2 id="h-bizview">What the businesses see</h2><div class="row" style="margin-top:4px"><button class="btn sm" data-bopen="${b.id}">Open ${esc(b.name)} in the business app</button></div><p class="lede">On the left, each business's own screen: only what ${first()} said yes to. On the right, the admin check that it is not seeing anything it should not.</p></div>
+  $('bizview').innerHTML=`<div class="sec-head"><p class="label">4 · The other side</p><h2 id="h-bizview">What the businesses see</h2><div class="row" style="margin-top:4px"><button class="btn sm" data-bopen="${b.id}">Open ${esc(b.name)} in the business app</button><button class="btn alt sm" data-act="bmsg" data-b="${b.id}">Message ${esc(first())} as ${esc(b.name)}</button></div><p class="lede">On the left, each business's own screen: only what ${first()} said yes to. On the right, the admin check that it is not seeing anything it should not.</p></div>
    <div class="bvtabs" role="tablist" aria-label="Business">${biz().map(x=>`<button role="tab" id="bvt-${x.id}" aria-selected="${x.id===b.id}" aria-controls="bvp" tabindex="${x.id===b.id?0:-1}" data-act="bv" data-b="${x.id}">${esc(x.name)}${S.dec[x.id]?' <span class="dot-on" aria-hidden="true"></span>':''}</button>`).join('')}</div>
    <div class="grid2" id="bvp" role="tabpanel" aria-labelledby="bvt-${b.id}">${staffScreen(b)}${auditPanel(b)}</div>`;
 }
 function probe(bid,k){
   const b=bz(bid); let r;
-  if(!b.fields.includes(k)) r='blocked: never requested';
+  if(volKeys(bid).includes(k)) r=fieldUp(k)?'allowed':'failed: source offline';
+  else if(!b.fields.includes(k)) r='blocked: never requested';
   else if(!S.dec[bid]) r='blocked: no answer yet';
-  else if(S.revoked[bid]) r='blocked: access ended';
+  else if(ended(bid)) r='blocked: access ended';
   else if(!granted(bid).includes(k)) r='blocked: she said no';
   else if(!fieldUp(k)) r='failed: source offline';
   else r='allowed';
@@ -1085,7 +1123,7 @@ const ym=(b,m)=>{const i=b.moments.indexOf(m); return (yb(b).m[i])||tpl(m.b);};
 const vLabel=k=>F(k).label.replace('how she moves','how you move');
 /* ================================================================== the vault app */
 let V;
-function resetV(){ V={open:false,tab:'home',biz:null,src:null,see:null,tbl:0,shown:50,fetched:{},busy:null,done:null,redo:false,ret:null}; }
+function resetV(){ V={open:false,tab:'home',biz:null,src:null,see:null,tbl:0,shown:50,fetched:{},busy:null,done:null,redo:false,ret:null,vol:false,volPick:null,volNote:'',volDur:'trip',fu:false,hist:false,hb:'all',acts:[],sugg:{}}; }
 resetV();
 const VTABS=[['home','Helmi'],['trip','Trip'],['data','My data'],['me','About me'],['share','Sharing']];
 const VIC={
@@ -1106,26 +1144,31 @@ function vHome(){
   const pend=pending(), done=biz().filter(b=>S.dec[b.id]);
   const hi=S.arch==='A'?`Hi ${esc(first())}, I'm Helmi. Your data stays where it is: at Kanta, Kela, your bank and the rest. When someone asks for something, I tell you. I only fetch what you say yes to.`
     :`Hi ${esc(first())}, I'm Helmi. Your data is on your own server. When someone asks for something, I tell you. I only pass on what you say yes to.`;
-  return helmi(hi)+
-   (pend.length?`<h3 class="v-h">New requests (${pend.length})</h3>`+pend.map(b=>`<div class="v-card alert"><p class="v-big"><b>${esc(b.name)}</b> is asking for ${b.fields.length} things</p><p class="small muted">${esc(b.when)} · ${esc(b.type)}</p><button class="v-btn" data-v="biz" data-b="${b.id}">See what they ask</button></div>`).join('')
+  const fus=biz().filter(b=>S.unread[b.id]);
+  return helmi(hi)+chatBox()+
+   fus.map(b=>{const m=msgs(b.id).filter(x=>x.from==='biz').pop(); return `<div class="v-card alert"><p class="v-big"><b>${esc(b.name)}</b> sent you a message</p><p class="small">“${esc(m?m.text:'')}”</p><button class="v-btn" data-v="fu" data-b="${b.id}">Open messages</button></div>`;}).join('')+
+   (pend.length?`<h3 class="v-h">New requests (${pend.length})</h3>`+pend.map(b=>`<div class="v-card alert"><p class="v-big"><b>${esc(b.name)}</b> is asking for ${b.fields.length} things</p><p class="small muted">${esc(b.when)} · ${esc(b.type)}</p><button class="v-btn" data-v="biz" data-b="${b.id}">See what they ask</button>${ruleCovers(b)?`<button class="v-btn alt" data-v="ruleanswer" data-b="${b.id}">Answer with my rules</button>`:''}</div>`).join('')
      :helmi('No new requests. Nobody can see anything you haven\'t said yes to.'))+
-   (done.length?`<h3 class="v-h">Done</h3><ul class="v-list">${done.map(b=>{const n=S.dec[b.id].fields.length; return `<li><button data-v="biz" data-b="${b.id}"><span><b>${esc(b.name)}</b><br><span class="small muted">${S.revoked[b.id]?'You stopped sharing':n?'You shared '+n+' thing'+(n>1?'s':''):'You said no'}</span></span><span aria-hidden="true">›</span></button></li>`;}).join('')}</ul>`:'')+
+   (done.length?`<h3 class="v-h">Done</h3><ul class="v-list">${done.map(b=>{const n=S.dec[b.id].fields.length; return `<li><button data-v="biz" data-b="${b.id}"><span><b>${esc(b.name)}</b><br><span class="small muted">${S.revoked[b.id]?'You stopped sharing':S.expired[b.id]?'Ended with the trip':n?'You shared '+n+' thing'+(n>1?'s':''):'You said no'}${volActive(b.id).length?' · you sent '+volActive(b.id).length+' more':''}</span></span><span aria-hidden="true">›</span></button></li>`;}).join('')}</ul>`:'')+
    (STUDY&&done.length&&!S.task?(pend.length?`<div class="v-quick"><button class="v-btn alt" data-v="finish">I'm finished</button></div>`:`<div class="v-card alert"><p class="v-big"><b>All requests answered.</b></p><p class="small">Have a look around if you like, then finish and send your answers.</p><button class="v-btn" data-v="finish">Finish and send</button></div>`):'')+
-   `<div class="v-quick"><button class="v-btn alt" data-v="tab" data-t="data">What do you keep about me?</button><button class="v-btn alt" data-v="tab" data-t="share">Who can see my data?</button></div>`;
+   afterCard()+`<div class="v-quick"><button class="v-btn alt" data-v="tab" data-t="data">What do you keep about me?</button><button class="v-btn alt" data-v="tab" data-t="share">Who can see my data?</button></div>`;
 }
 function vTrip(){
   return helmi(`Your trip to ${CITY()}, 12 to 14 November. Each place asks you first.`)+
-   `<ol class="v-steps">${biz().map((b,i)=>{const d=S.dec[b.id]; const st=!d?'<span class="pill acc">Asking you</span>':S.revoked[b.id]?'<span class="pill warn">Stopped</span>':d.fields.length?`<span class="pill good">Shared ${d.fields.length}</span>`:'<span class="pill">Said no</span>';
+   `<ol class="v-steps">${biz().map((b,i)=>{const d=S.dec[b.id]; const st=!d?'<span class="pill acc">Asking you</span>':S.revoked[b.id]?'<span class="pill warn">Stopped</span>':S.expired[b.id]?'<span class="pill">Ended</span>':d.fields.length?`<span class="pill good">Shared ${d.fields.length}</span>`:'<span class="pill">Said no</span>';
      return `<li><button data-v="biz" data-b="${b.id}"><span class="step" aria-hidden="true">${i+1}</span><span><b>${esc(b.name)}</b><br><span class="small muted">${esc(b.when)}</span></span>${st}</button></li>`;}).join('')}</ol>`;
 }
 function vRequest(b){
-  const ch=S.choice[b.id]||(S.choice[b.id]={}); b.fields.forEach(k=>{if(!ch[k]) ch[k]='deny';});
+  let fresh1=!S.choice[b.id]; const ch=S.choice[b.id]||(S.choice[b.id]={}); const nr=fresh1?applyRules(b,ch):b.fields.filter(k=>ruleOf(k)!=='ask').length; b.fields.forEach(k=>{if(!ch[k]) ch[k]='deny';});
+  const sg=V.sugg&&V.sugg[b.id]?suggestFor(b):null;
   const n=b.fields.filter(k=>ch[k]==='share').length, dur=S.dur[b.id]||'trip';
   const adv=(k)=>{ if(!S.advice) return ''; const f=F(k); if(f.kind==='bulk') return `<p class="v-adv"><b>Helmi:</b> This is ${fmt(f.rows)} rows about you. ${esc(b.name)} can do what it promised without it.</p>`; if(f.adv) return `<p class="v-adv"><b>Helmi:</b> ${esc(f.adv)}</p>`; if(k==='health.diag') return `<p class="v-adv"><b>Helmi:</b> This is your diagnosis, not what you need. Insurers can use it to exclude claims.</p>`; return ''; };
   return helmi(`<b>${esc(b.name)}</b> is asking for ${b.fields.length} things. ${esc(yb(b).why)}`)+
    (b.owner?`<p class="note">Same owner as ${esc(bz(b.owner).name)}, but it can't see anything you gave the hotel. It has to ask you itself.</p>`:'')+
+   (nr?`<p class="note">Your rules set ${nr} of these. Check them, then send.</p>`:'')+
+   (sg?helmi(`Here’s my suggestion. I turned on what ${esc(b.name)} needs for what it promised, and left off the rest:<ul class="v-plain">${sg.map(x=>`<li class="${x.on?'pos':''}"><b>${x.on?'On':'Off'}: ${esc(lab1(x.k))}.</b> ${esc(x.why)}</li>`).join('')}</ul>Change anything you like.`):`<button class="v-btn alt" data-v="suggest" data-b="${b.id}">Suggest for me</button>`)+
    `<p class="small muted">Turn on only what you want to share.</p>
-   <ul class="v-sw">${b.fields.map(k=>{const f=F(k), on=ch[k]==='share'; return `<li><label class="sw-row"><span class="sw-txt"><b>${esc(f.label)}</b>${f.kind==='bulk'?` <span class="pill warn">${fmt(f.rows)} rows</span>`:''}<span class="v-val">${esc(f.value)}</span><span class="tiny muted">From ${esc(vHolder(f.src))}</span></span><input type="checkbox" role="switch" class="sw-in" data-vchg="sw" data-b="${b.id}" data-k="${k}" ${on?'checked':''}><span class="sw-ui" aria-hidden="true"></span></label>${adv(k)}</li>`;}).join('')}</ul>
+   <ul class="v-sw">${b.fields.map(k=>{const f=F(k), on=ch[k]==='share'; return `<li><label class="sw-row"><span class="sw-txt"><b>${esc(f.label)}</b>${f.kind==='bulk'?` <span class="pill warn">${fmt(f.rows)} rows</span>`:''}<span class="v-val">${esc(f.value)}</span><span class="tiny muted">From ${esc(vHolder(f.src))}${ruleOf(k)!=='ask'?' · <b>your rule: '+(ruleOf(k)==='auto'?'always share':'never share')+'</b>':''}</span></span><input type="checkbox" role="switch" class="sw-in" data-vchg="sw" data-b="${b.id}" data-k="${k}" ${on?'checked':''}><span class="sw-ui" aria-hidden="true"></span></label>${adv(k)}</li>`;}).join('')}</ul>
    <div class="v-field"><label for="vdur" style="font-weight:600">For how long?</label><select id="vdur" data-vchg="dur" data-b="${b.id}">${Object.entries(DUR).map(([k,l])=>`<option value="${k}" ${dur===k?'selected':''}>${l.replace('Until she takes','Until I take')}</option>`).join('')}</select></div>
    <p class="small"><b>If you say no:</b> ${esc(yb(b).refuse)}</p>
    <button class="v-btn" data-v="send" data-b="${b.id}">${n?'Share '+n+' thing'+(n>1?'s':''):'Share nothing'}</button>`;
@@ -1136,15 +1179,17 @@ function vDone(b){
   const holders=[...new Set(g.map(k=>hName(F(k).src)))];
   let msg;
   if(S.revoked[b.id]) msg=`You stopped sharing with ${esc(b.name)}. It can't see anything now.`;
+  else if(S.expired[b.id]&&!g.length) msg=`Your trip is over, so ${esc(b.name)}'s access ended on its own. It can't see anything now.`;
   else if(!g.length) msg=`OK. I told ${esc(b.name)} no. Nothing was shared.`;
   else msg=S.arch==='A'?`Done. I fetched ${g.length} thing${g.length>1?'s':''} live from ${esc(holders.join(', '))} and gave ${g.length>1?'them':'it'} to ${esc(b.name)}. I didn't keep a copy.`:`Done. I sent ${g.length} thing${g.length>1?'s':''} from your server to ${esc(b.name)}.`;
   const better=b.moments.filter(m=>momentState(b,m)==='with');
   const off=b.moments.filter(m=>momentState(b,m)==='down');
   return helmi(msg)+
-   (g.length&&!S.revoked[b.id]?`<h3 class="v-h">${esc(b.name)} can see</h3><ul class="v-plain">${g.map(k=>`<li>${esc(F(k).label)}</li>`).join('')}</ul><p class="small muted">${esc(DUR[d.dur].replace('she takes','you take'))}. Nothing else.</p>`:'')+
+   (g.length&&!ended(b.id)?`<h3 class="v-h">${esc(b.name)} can see</h3><ul class="v-plain">${d.fields.filter(k=>g.includes(k)).map(k=>`<li>${esc(F(k).label)}</li>`).join('')}</ul><p class="small muted">${esc(DUR[d.dur].replace('she takes','you take'))}. Nothing else.</p>`:'')+
+   volCard(b)+chatBtn(b)+
    (better.length?`<h3 class="v-h">What this changes for you</h3><ul class="v-plain">${better.map(m=>`<li class="${m.neg?'neg':m.trade?'':'pos'}"><b>${esc(m.t)}.</b> ${esc(ym(b,m))}</li>`).join('')}</ul>`:'')+
    (off.length?helmi(`${off.length} thing${off.length>1?'s':''} couldn't be fetched today because the source is offline.`):'')+
-   `<div class="v-quick"><button class="v-btn alt" data-v="see" data-b="${b.id}">See what ${esc(b.name)} sees</button><button class="v-btn alt" data-v="redo" data-b="${b.id}">Change my answer</button>${g.length&&!S.revoked[b.id]?`<button class="v-btn danger" data-v="stop" data-b="${b.id}">Stop sharing</button>`:''}</div>`;
+   `<div class="v-quick"><button class="v-btn alt" data-v="see" data-b="${b.id}">See what ${esc(b.name)} sees</button><button class="v-btn alt" data-v="redo" data-b="${b.id}">Change my answer</button><button class="v-btn alt" data-v="mkrules" data-b="${b.id}">Remember these answers as rules</button>${g.length&&!S.revoked[b.id]?`<button class="v-btn danger" data-v="stop" data-b="${b.id}">Stop sharing</button>`:''}</div>`;
 }
 function vData(){
   return helmi(S.arch==='A'?`This is everything about you, and where it's kept. I fetch it only when you look, or when you say yes to someone.`:`This is everything on your server. It's copied from these places every night at 03:00.`)+
@@ -1167,15 +1212,17 @@ function vSource(s){
 function vMe(){
   const needs=Object.entries(P().fields).filter(([k])=>k.startsWith('need.'));
   const by=k=>biz().filter(b=>granted(b.id).includes(k)).map(b=>b.name);
-  return helmi(`You wrote this once. I share single lines, only when you say yes. ${needs.length} lines.`)+
-   `<ul class="v-me">${needs.map(([k,f])=>{const u=by(k); return `<li><span class="label">${esc(f.label.split(':')[0])}</span><span class="v-val">${esc(f.value)}</span><span class="tiny muted">Checked by: ${esc(f.verified)}</span>${u.length?`<span class="tiny"><b>Shared with:</b> ${esc(u.join(', '))}</span>`:''}</li>`;}).join('')}</ul>`;
+  return helmi(`You wrote this once. I share single lines, only when you say yes. ${needs.length} lines. Set a rule on any line, and I’ll fill it in for you next time someone asks.`)+
+   `<ul class="v-me">${needs.map(([k,f])=>{const u=by(k); return `<li><span class="label">${esc(f.label.split(':')[0])}</span><span class="v-val">${esc(f.value)}</span><span class="tiny muted">Checked by: ${esc(f.verified)}</span>${u.length?`<span class="tiny"><b>Shared with:</b> ${esc(u.join(', '))}</span>`:''}${ruleSel(k)}</li>`;}).join('')}</ul>
+   <h3 class="v-h">Rules for other data</h3><ul class="v-me">${Object.entries(P().fields).filter(([k])=>!k.startsWith('need.')).map(([k,f])=>`<li><span class="label">${esc(f.label)}</span>${ruleSel(k)}</li>`).join('')}</ul>`;
 }
 function vShare(){
-  const on=biz().filter(b=>granted(b.id).length), stopped=biz().filter(b=>S.revoked[b.id]), no=biz().filter(b=>S.dec[b.id]&&!S.dec[b.id].fields.length&&!S.revoked[b.id]);
+  const on=biz().filter(b=>granted(b.id).length), stopped=biz().filter(b=>S.revoked[b.id]||(S.expired[b.id]&&!granted(b.id).length)), no=biz().filter(b=>S.dec[b.id]&&!S.dec[b.id].fields.length&&!S.revoked[b.id]&&!granted(b.id).length);
   return (on.length?helmi(`${on.length} place${on.length>1?'s':''} can see some of your data. Tap one to see exactly what they see, and what they don't.`):helmi('Nobody can see your data. Only you, and me when you ask.'))+
-   on.map(b=>{const d=S.dec[b.id]; return `<div class="v-card"><button class="v-cardhead" data-v="see" data-b="${b.id}"><span><b class="v-big">${esc(b.name)}</b><br><span class="small muted">Sees ${d.fields.length} of ${b.fields.length} things they asked for · ${esc(DUR[d.dur].replace('she takes','you take'))}</span></span><span aria-hidden="true">›</span></button><button class="v-btn alt" data-v="see" data-b="${b.id}">See what ${esc(b.name)} sees</button><button class="v-btn danger" data-v="stop" data-b="${b.id}">Stop sharing</button></div>`;}).join('')+
+   `<button class="v-btn alt" data-v="hist">Sharing history</button>`+afterCard()+
+   on.map(b=>{const d=S.dec[b.id], nd=d&&!S.expired[b.id]?d.fields.length:0, nv=volActive(b.id).length; return `<div class="v-card"><button class="v-cardhead" data-v="see" data-b="${b.id}"><span><b class="v-big">${esc(b.name)}</b><br><span class="small muted">${d?`Sees ${nd} of ${b.fields.length} things they asked for`:'Didn’t ask yet'}${nv?` · plus ${nv} you sent`:''}${d&&nd?' · '+esc(DUR[d.dur].replace('she takes','you take')):''}</span></span><span aria-hidden="true">›</span></button><button class="v-btn alt" data-v="see" data-b="${b.id}">See what ${esc(b.name)} sees</button><button class="v-btn danger" data-v="stop" data-b="${b.id}">Stop sharing</button></div>`;}).join('')+
    (no.length?`<h3 class="v-h">You said no</h3><ul class="v-list">${no.map(b=>`<li><button data-v="see" data-b="${b.id}"><span><b>${esc(b.name)}</b><br><span class="small muted">Sees nothing</span></span><span aria-hidden="true">›</span></button></li>`).join('')}</ul>`:'')+
-   (stopped.length?`<h3 class="v-h">Stopped</h3>`+stopped.map(b=>`<div class="v-card"><button class="v-cardhead" data-v="see" data-b="${b.id}"><span><b>${esc(b.name)}</b><br><span class="small muted">Can't see anything now</span></span><span aria-hidden="true">›</span></button><button class="v-btn alt" data-v="restart" data-b="${b.id}">Share again</button></div>`).join(''):'')+netCard();
+   (stopped.length?`<h3 class="v-h">Stopped</h3>`+stopped.map(b=>`<div class="v-card"><button class="v-cardhead" data-v="see" data-b="${b.id}"><span><b>${esc(b.name)}</b><br><span class="small muted">${S.revoked[b.id]?"Can't see anything now":'Ended with the trip'}</span></span><span aria-hidden="true">›</span></button><button class="v-btn alt" data-v="restart" data-b="${b.id}">Share again</button></div>`).join(''):'')+netCard();
 }
 function netCard(){ const n=netP(), allow=S.netAllow!==false;
   return `<h3 class="v-h">Checked by the network</h3><div class="v-card"><p class="small">Some places only need a yes or a no. I can ask the mobile network instead of sharing your data: they get the answer, never your location or your ID.</p>
@@ -1195,9 +1242,13 @@ function vSee(b){
    <ul class="v-list v-hide">${srcRows.filter(x=>x.rest>0).map(x=>`<li><div class="v-hrow"><span><b>${esc(x.s.id==='vault'?'About me (other lines)':x.s.name)}</b><br><span class="small muted">${x.seen?'Only the line'+(x.seen>1?'s':'')+' you shared':'None of it'}</span></span><span class="v-n">🔒 ${fmt(x.rest)}</span></div></li>`).join('')}</ul>
    ${b.owner?helmi(`${esc(bz(b.owner).name)} is owned by the same group, but it can't pass anything to ${esc(b.name)}.`):''}
    ${biz().some(x=>x.owner===b.id)?helmi(`${esc(biz().find(x=>x.owner===b.id).name)} belongs to the same group. It can't see any of this.`):''}
+   ${volCard(b)}
    ${g.length?`<button class="v-btn danger" data-v="stop" data-b="${b.id}">Stop sharing with ${esc(b.name)}</button>`:''}`;
 }
 function vTitle(){
+  if(V.tab==='trip'&&V.biz&&V.vol) return 'Send '+bz(V.biz).name+' something';
+  if(V.tab==='trip'&&V.biz&&V.fu) return 'Messages: '+bz(V.biz).name;
+  if(V.tab==='share'&&V.hist) return 'Sharing history';
   if(V.tab==='trip'&&V.biz) return bz(V.biz).name;
   if(V.tab==='data'&&V.src) return srcOf(V.src).name;
   if(V.tab==='share'&&V.see) return 'What '+bz(V.see).name+' sees';
@@ -1215,11 +1266,11 @@ function renderVault(keepFocus){
   else if(V.tab==='finish') body=vFinish();
   else if(V.tab==='tasks') body=vTasks();
   else if(V.tab==='home') body=vHome();
-  else if(V.tab==='trip') body=V.biz?((S.dec[V.biz]&&!V.redo)?vDone(bz(V.biz)):vRequest(bz(V.biz))):vTrip();
+  else if(V.tab==='trip') body=V.biz?(V.vol?vVol(bz(V.biz)):V.fu?vChat(bz(V.biz)):(S.dec[V.biz]&&!V.redo)?vDone(bz(V.biz)):vRequest(bz(V.biz))):vTrip();
   else if(V.tab==='data') body=V.src?vSource(srcOf(V.src)):vData();
   else if(V.tab==='me') body=vMe();
-  else body=V.see?vSee(bz(V.see)):vShare();
-  const sub=(V.tab==='trip'&&V.biz)||(V.tab==='data'&&V.src)||(V.tab==='share'&&V.see);
+  else body=V.hist?vHist():V.see?vSee(bz(V.see)):vShare();
+  const sub=(V.tab==='trip'&&V.biz)||(V.tab==='data'&&V.src)||(V.tab==='share'&&(V.see||V.hist));
   const pm=document.body.classList.contains('vault-only');
   $('v-top').innerHTML=`${sub?`<button class="v-ib" data-v="back" aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>`:`<span class="v-who" aria-hidden="true">${V.tab==='start'?'':esc(first()[0])}</span>`}
     <h2 id="v-title" tabindex="-1">${esc(vTitle())}</h2>
@@ -1266,11 +1317,31 @@ document.addEventListener('click',e=>{
   if(a==='copy'){ const txt=studyResults(); const done=()=>{const m=$('vfmsg'); if(m) m.textContent='Copied. Paste it where the research team asks.';}; log('study copy',S.pid);
     if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,()=>fallbackCopy(txt,done)); } else fallbackCopy(txt,done); return; }
   if(a==='savefile'){ const blob=new Blob([studyResults()],{type:'text/plain'}); const el=document.createElement('a'); el.href=URL.createObjectURL(blob); el.download=`vault-answers_${S.pid}.txt`; document.body.appendChild(el); el.click(); el.remove(); log('study save',S.pid); const m=$('vfmsg'); if(m) m.textContent='Saved. Send the file to the research team.'; return; }
-  if(a==='tab'){ V.redo=false; vGo({tab:v.dataset.t,biz:null,src:null,see:null}); return; }
-  if(a==='back'){ V.redo=false; vGo({biz:null,src:null,see:null}); return; }
-  if(a==='see'){ vGo({tab:'share',see:bid,biz:null,src:null}); log('vault see',bid); return; }
+  if(a==='tab'){ V.redo=false; vGo({tab:v.dataset.t,biz:null,src:null,see:null,vol:false,fu:false,hist:false}); return; }
+  if(a==='back'){ V.redo=false; if(V.vol||V.fu){ vGo({vol:false,fu:false}); return; } vGo({biz:null,src:null,see:null,hist:false}); return; }
+  if(a==='see'){ vGo({tab:'share',see:bid,biz:null,src:null,vol:false,fu:false,hist:false}); log('vault see',bid); return; }
+  if(a==='vol'){ V.volPick={}; V.volNote=''; V.volDur='trip'; vGo({tab:'trip',biz:bid,vol:true,fu:false,see:null,hist:false}); log('vault volunteer open',bid); return; }
+  if(a==='volsend'){ const items=Object.keys(V.volPick||{}).filter(k=>V.volPick[k]).map(k=>({k})); const nt=(V.volNote||'').trim().slice(0,VOLMAX); if(nt) items.push({note:nt}); if(!items.length) return;
+    sendVol(bid,items,V.volDur||'trip','vault'); V.volPick={}; V.volNote=''; renderLive(); if(S.dec[bid]) vGo({tab:'trip',biz:bid,vol:false}); else vGo({tab:'share',see:bid,biz:null,vol:false});
+    say(`Sent ${items.length} thing${items.length>1?'s':''} to ${bz(bid).name}.`); return; }
+  if(a==='unvol'){ unsendVol(bid,v.dataset.i); renderLive(); renderVault(); say('Taken back. '+bz(bid).name+' can’t see it now.'); const h=$('v-title'); if(h) h.focus({preventScroll:true}); return; }
+  if(a==='tipsend'){ const sg=(SUG[S.persona]||{})[bid]; if(sg){ sendVol(bid,[{k:sg[0]}],'trip','tip'); S.ai.tips=(S.ai.tips||0)+1; renderLive(); renderVault(); say('Sent to '+bz(bid).name+' for this trip.'); } return; }
+  if(a==='tipno'){ S.tipNo[bid]=1; log('tip declined',bid); renderVault(); return; }
+  if(a==='fu'){ vGo({tab:'trip',biz:bid,fu:true,vol:false,see:null,hist:false}); log('chat open',bid); setTimeout(()=>{const t=$('v-screen'); if(t) t.scrollTop=t.scrollHeight;},30); return; }
+  if(a==='qr'){ meSend(bid,v.dataset.a); renderLive(); renderVault(); const t=$('v-screen'); t.scrollTop=t.scrollHeight; const i=$('chatin'); if(i) i.focus({preventScroll:true}); return; }
+  if(a==='chatclose'||a==='chatopen'){ if(a==='chatclose') S.chatOff[bid]=true; else delete S.chatOff[bid]; audit(bid,'Chat',a==='chatclose'?'chat closed by '+first():'chat opened again by '+first(),''); log(a,bid); renderLive(); renderVault(); say(a==='chatclose'?'Chat closed. '+bz(bid).name+' can’t message you.':'Chat open again.'); return; }
+  if(a==='offer'||a==='offerno'){ const m=msgs(bid)[+v.dataset.i]; if(!m) return; if(a==='offer'){ sendVol(bid,[{k:m.k}],'trip','chat'); S.offers++; m.done='sent'; msgs(bid).push({from:'helmi',text:'Shared “'+F(m.k).label+'” with '+bz(bid).name+' for this trip. You can take it back any time.',t:clock()}); } else m.done='no'; renderLive(); renderVault(); const t=$('v-screen'); t.scrollTop=t.scrollHeight; return; }
+  if(a==='aftertrip'){ endTrip(); renderLive(); renderVault(); say('Your trip is over. Trip-only access has ended.'); return; }
+  if(a==='backtrip'){ undoTrip(); renderLive(); renderVault(); say('Back to the trip.'); return; }
+  if(a==='hist'){ vGo({tab:'share',hist:true,see:null,biz:null,src:null}); log('vault history'); return; }
+  if(a==='mkrules'){ const b=bz(bid), d=S.dec[bid]; b.fields.forEach(k=>S.rules[k]=d.fields.includes(k)?'auto':'never'); log('rules from answer',bid); renderVault(true); say(`Saved ${b.fields.length} rules. I’ll fill these in next time someone asks.`); return; }
+  if(a==='ruleanswer'){ const b=bz(bid), ch=S.choice[bid]={}; applyRules(b,ch); const fields=b.fields.filter(k=>ch[k]==='share'); S.openedAt[bid]=Date.now(); decide(bid,fields,'trip','rules'); renderLive(); vGo({tab:'trip',biz:bid,vol:false,fu:false}); say(`Answered with your rules: shared ${fields.length} of ${b.fields.length}.`); return; }
+  if(a==='suggest'){ const b=bz(bid), ch=S.choice[bid]={}; suggestFor(b).forEach(x=>ch[x.k]=x.on?'share':'deny'); V.sugg[bid]=1; S.ai.suggest[bid]=1; log('helmi suggest',bid); renderVault(); say('Helmi suggested an answer. Check the switches, then send.'); return; }
+  if(a==='hact'){ runAct(+v.dataset.i); return; }
+  if(a==='askex'){ askHelmi(v.dataset.q); return; }
+  if(a==='mic'){ if(!SR) return; try{ const r=new SR(); r.lang='en-GB'; r.interimResults=false; r.maxAlternatives=1; v.textContent='●'; r.onresult=ev=>{ const q=ev.results[0][0].transcript; const i=$('vask'); if(i) i.value=q; askHelmi(q); }; r.onend=()=>{ const m=document.querySelector('[data-v=mic]'); if(m) m.textContent='🎤'; }; r.onerror=()=>{ say('I couldn’t hear you. Try typing instead.'); }; r.start(); }catch(err){ say('Speaking isn’t available in this browser. Try typing.'); } return; }
   if(a==='biz'){ if(STUDY){ S.study=S.study||{}; if(S.study.firstOpen==null) S.study.firstOpen=Math.round((Date.now()-S.t0)/1000); }
-    V.redo=false; S.openedAt[bid]=Date.now(); vGo({tab:'trip',biz:bid}); log('vault request',bid); return; }
+    V.redo=false; S.openedAt[bid]=Date.now(); vGo({tab:'trip',biz:bid,vol:false,fu:false,see:null,hist:false}); log('vault request',bid); return; }
   if(a==='src'){ if(v.dataset.s==='vault'){ vGo({tab:'me',src:null}); return;} vGo({src:v.dataset.s}); log('vault source',v.dataset.s); return; }
   if(a==='more'){ V.shown+=50; renderVault(); const b=$('v-screen').querySelector('[data-v="more"]'); (b||$('vrows')).focus({preventScroll:true}); return; }
   if(a==='all'){ V.shown=1e6; renderVault(); $('vrows').focus&&$('vrows').setAttribute('tabindex','-1'); $('vrows').focus(); return; }
@@ -1286,6 +1357,10 @@ document.addEventListener('change',e=>{
   const t=e.target, c=t.dataset.vchg; if(c){
     if(c==='sw'){ S.choice[t.dataset.b][t.dataset.k]=t.checked?'share':'deny'; log('vault choose',t.dataset.b+' '+t.dataset.k+'='+(t.checked?'share':'deny')); renderVault(true); }
     if(c==='dur'){ S.dur[t.dataset.b]=t.value; log('vault duration',t.dataset.b+' '+t.value); }
+    if(c==='volpick'){ (V.volPick=V.volPick||{})[t.dataset.k]=t.checked; renderVault(true); }
+    if(c==='voldur'){ V.volDur=t.value; }
+    if(c==='rule'){ if(t.value==='ask') delete S.rules[t.dataset.k]; else S.rules[t.dataset.k]=t.value; log('rule',t.dataset.k+'='+t.value); say('Rule saved.'); }
+    if(c==='hb'){ V.hb=t.value; renderVault(); const r=document.querySelector(`[name=vhb][value="${t.value}"]`); if(r) r.focus(); }
     if(c==='finarch'){ (S.study=S.study||{}).arch=t.value; log('study arch',t.value); renderVault(true); }
     if(c==='fin'){ (S.study=S.study||{})[t.dataset.q]=+t.value; log('study rating',t.dataset.q+'='+t.value); renderVault(true); }
     if(c==='tbl'){ V.tbl=+t.value; V.shown=50; renderVault(); const r=document.querySelector(`[name=vtbl][value="${t.value}"]`); if(r) r.focus(); }
@@ -1329,13 +1404,17 @@ function readable(r){
   B.forEach(b=>{ const x=r.dec&&r.dec[b.id]; if(!x){ L.push(`• ${b.name}: not answered`); return; }
     L.push(`• ${b.name}: ${x.shared.length?`shared ${x.shared.length} of ${x.asked} (${DURT[x.dur]||x.dur})`:`said no to all ${x.asked}`}${x.revoked?', then took access back':''} · decided in ${x.secs} s`);
     if(x.shared.length) L.push('   '+x.shared.map(lab).join(', ')); });
+  if(r.vol&&Object.keys(r.vol).length){ L.push('','SENT WITHOUT BEING ASKED'); B.forEach(b=>{ const v=r.vol[b.id]; if(v) L.push(`• ${b.name}: ${v.map(x=>(x.replace(/-$/,'')==='note'?'a note':lab(x.replace(/-$/,'')))+(x.endsWith('-')?' (later taken back)':'')).join(', ')}`); }); }
+  if(r.chat&&Object.keys(r.chat).length){ L.push('','MESSAGES'); B.forEach(b=>{ const c=r.chat[b.id]; if(c) L.push(`• ${b.name}: ${c[0]} from them, ${c[1]} from you${c[2]?', chat closed':''}`); }); }
+  if(r.ai) L.push('','HELMI',`• Asked Helmi ${r.ai.asks} time${r.ai.asks===1?'':'s'}, ${r.ai.acts} action${r.ai.acts===1?'':'s'} confirmed`,`• Used “Suggest for me” for: ${r.ai.suggest&&r.ai.suggest.length?r.ai.suggest.map(id=>(B.find(b=>b.id===id)||{}).name||id).join(', '):'none'}`,`• Tips accepted: ${r.ai.tips||0} · data requests in chat shared properly: ${r.ai.offers||0}`,`• Saved rules: ${r.rules||0}${r.after?' · tried “after the trip”':''}`);
   L.push('','TASKS'); TASKT.forEach(([k,t])=>L.push(`• ${t}: ${taskTxt(r,k)}`));
   L.push('','RATINGS',`• Felt in control: ${r.control||'–'} of 5`,`• Easy to use: ${r.easy||'–'} of 5`,`• Would trust more: ${ARCHT[r.archPref]||'–'}`,`• Opened the first request after ${r.firstOpen??'–'} s`,`• Film: ${!r.film?'–':r.film==='not offered'?'not offered (shown in the session)':r.film.choice+(r.film.secs?', played to '+Math.floor(r.film.secs/60)+':'+String(r.film.secs%60).padStart(2,'0')+' of 2:58':'')}`,`• Comment: ${r.comment||'none'}`);
   return L.join('\n'); }
 function tosLine(){
   const d={};
-  biz().forEach(b=>{const x=S.dec[b.id]; d[b.id]=x?{shared:x.fields,asked:b.fields.length,dur:x.dur,secs:x.secs,revoked:!!S.revoked[b.id]}:null;});
-  return 'TOS1:'+JSON.stringify({v:1,code:S.pid,persona:S.persona,setup:S.arch,advice:S.advice?1:0,assign:S.assign||'link',mins:Math.round((Date.now()-S.t0)/6000)/10,dec:d,control:(S.study||{}).control||null,easy:(S.study||{}).easy||null,firstOpen:(S.study||{}).firstOpen??null,tasks:(S.study||{}).tasks||{},archPref:(S.study||{}).arch||null,comment:(S.study||{}).comment||'',film:filmOn()?((S.study||{}).film||null):'not offered',device:/Mobi|Android|iPhone/i.test(navigator.userAgent)?'phone':'computer',at:new Date().toISOString().slice(0,16)});
+  biz().forEach(b=>{const x=S.dec[b.id]; d[b.id]=x?{shared:x.fields,asked:b.fields.length,dur:x.dur,secs:x.secs,revoked:!!S.revoked[b.id],from:x.from}:null;});
+  const vol={},chat={}; biz().forEach(b=>{ const v=volList(b.id); if(v.length) vol[b.id]=v.map(x=>(x.k||'note')+(x.ended?'-':'')); const m=msgs(b.id).filter(x=>x.from!=='helmi'); if(m.length||S.chatOff[b.id]) chat[b.id]=[m.filter(x=>x.from==='biz').length,m.filter(x=>x.from==='me').length,S.chatOff[b.id]?1:0]; });
+  return 'TOS1:'+JSON.stringify({v:1,code:S.pid,persona:S.persona,setup:S.arch,advice:S.advice?1:0,assign:S.assign||'link',mins:Math.round((Date.now()-S.t0)/6000)/10,dec:d,control:(S.study||{}).control||null,easy:(S.study||{}).easy||null,firstOpen:(S.study||{}).firstOpen??null,tasks:(S.study||{}).tasks||{},archPref:(S.study||{}).arch||null,comment:(S.study||{}).comment||'',film:filmOn()?((S.study||{}).film||null):'not offered',device:/Mobi|Android|iPhone/i.test(navigator.userAgent)?'phone':'computer',at:new Date().toISOString().slice(0,16),vol,chat,rules:Object.keys(S.rules).length,ai:{asks:S.ai.asks,acts:S.ai.acts,suggest:Object.keys(S.ai.suggest),tips:S.ai.tips||0,offers:S.offers||0},after:S.after?1:0});
 }
 function sendUrl(){ const tpl=formTpl(); if(!tpl) return ''; return tpl.replace('CODE',encodeURIComponent(S.pid)).replace('ANSWERS',encodeURIComponent(studyResults())); }
 
@@ -1471,8 +1550,8 @@ async function combine(){
 }
 function exportCombined(){
   const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"'; const bizIds=['rail','hotel','bistro','venue','ins'];
-  const head=['code','persona','setup','helmi_advice','assigned_by','minutes','device','submitted','first_request_seconds','task_see_seconds','task_see_result','task_stop_seconds','task_stop_result','task_bank_seconds','task_bank_result','trust_A_or_B'].concat(...bizIds.map(b=>[b+'_shared',b+'_asked',b+'_items',b+'_duration',b+'_seconds',b+'_revoked'])).concat(['control_1to5','easy_1to5','film','film_seconds','comment']);
-  const rows=[head].concat(ST.rows.map(r=>[r.code,r.persona,r.setup,r.advice,r.assign||'',r.mins,r.device,r.at,r.firstOpen].concat(...['see','stop','bank'].map(k=>{const x=(r.tasks||{})[k]; return x?[x.s==null?'':x.s,x.ok===true?'done':x.ok==='n/a'?'n/a':'skipped']:['',''];})).concat([r.archPref||'']).concat(...bizIds.map(b=>{const x=r.dec&&r.dec[b]; return x?[x.shared.length,x.asked,x.shared.join(' '),x.dur,x.secs,x.revoked?'yes':'no']:['','','','','',''];})).concat([r.control,r.easy,(r.film&&r.film.choice)||r.film||'',(r.film&&r.film.secs)||'',r.comment])));
+  const head=['code','persona','setup','helmi_advice','assigned_by','minutes','device','submitted','first_request_seconds','task_see_seconds','task_see_result','task_stop_seconds','task_stop_result','task_bank_seconds','task_bank_result','trust_A_or_B'].concat(...bizIds.map(b=>[b+'_shared',b+'_asked',b+'_items',b+'_duration',b+'_seconds',b+'_revoked'])).concat(['control_1to5','easy_1to5','film','film_seconds','comment','sent_unasked','messages','helmi_asks','helmi_actions','suggest_used','tips_accepted','rules_saved','tried_after_trip']);
+  const rows=[head].concat(ST.rows.map(r=>[r.code,r.persona,r.setup,r.advice,r.assign||'',r.mins,r.device,r.at,r.firstOpen].concat(...['see','stop','bank'].map(k=>{const x=(r.tasks||{})[k]; return x?[x.s==null?'':x.s,x.ok===true?'done':x.ok==='n/a'?'n/a':'skipped']:['',''];})).concat([r.archPref||'']).concat(...bizIds.map(b=>{const x=r.dec&&r.dec[b]; return x?[x.shared.length,x.asked,x.shared.join(' '),x.dur,x.secs,x.revoked?'yes':'no']:['','','','','',''];})).concat([r.control,r.easy,(r.film&&r.film.choice)||r.film||'',(r.film&&r.film.secs)||'',r.comment,Object.entries(r.vol||{}).map(([b,v])=>b+':'+v.join('|')).join(' '),Object.entries(r.chat||{}).map(([b,c])=>b+':'+c.join('/')).join(' '),(r.ai||{}).asks||0,(r.ai||{}).acts||0,((r.ai||{}).suggest||[]).join(' '),(r.ai||{}).tips||0,r.rules||0,r.after?'yes':'no'])));
   const blob=new Blob(['﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='vault-study_combined.csv'; document.body.appendChild(a); a.click(); a.remove();
 }
 document.addEventListener('change',e=>{ if(e.target.name!=='st-allon') return; const on=e.target.value==='on'; if(on===ST.allOn) return; ST.allOn=on; const had=ST.codes.length; ST.codes=[]; if(ST.links) ST.links=studyLinks(); if(ST.saved) stSave(); log('study advice',on?'on for everyone':'varies'); renderStudy(); const m=$('st-msg'); if(m&&had) m.textContent='Groups changed, so the old codes were cleared. Make new codes.'; const r=document.querySelector('input[name=st-allon][value="'+(on?'on':'vary')+'"]'); if(r) r.focus(); });
@@ -1584,10 +1663,218 @@ let READ=false; try{ READ=localStorage.getItem('tos-read')==='1'; }catch(e){}
 function speak(t){ if(!canSpeak||!t) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t.replace(/\s+/g,' ').trim()); u.lang='en-GB'; u.rate=0.95; const v=speechSynthesis.getVoices().find(v=>/^en(-|_)GB/i.test(v.lang))||speechSynthesis.getVoices().find(v=>/^en/i.test(v.lang)); if(v) u.voice=v; speechSynthesis.speak(u); }
 function readScreen(){ const b=document.querySelector('#v-screen .helmi .bubble'); const h=$('v-title'); speak((h?h.innerText+'. ':'')+(b?b.innerText.replace(/^Helmi:\s*/,''):'')); }
 
+/* ================================================================== new in v2: send it yourself, follow-ups, history, expiry, rules, Helmi agent */
+const VOLMAX=200;
+const SENS=k=>/^(health|bank|loc|activity)/.test(k)||k==='allergy'||k==='dev.main';
+const volList=bid=>(S.vol[bid]||[]);
+const volActive=bid=>S.revoked[bid]?[]:volList(bid).filter(x=>!x.ended);
+const volKeys=bid=>volActive(bid).filter(x=>x.k).map(x=>x.k);
+const ended=bid=>!!(S.revoked[bid]||S.expired[bid]);
+const lab1=k=>F(k).label.replace(/^[^:]+:\s*/,'');
+const lcl=t=>/^(Onni|EU)\b/.test(t)?t:t.charAt(0).toLowerCase()+t.slice(1);
+/* what Helmi suggests sending without being asked, per person and business */
+const SUG={
+ aino:{rail:['need.weight','Ground staff lift your chair. Its weight helps them plan.'],hotel:['need.room','They didn’t ask where your room should be. You need turning space by the bed.'],bistro:['need.assist','So staff ask before helping, and speak to you, not your companion.'],venue:['need.assist','So ushers ask before helping.']},
+ elina:{rail:['need.assist','So the assistant offers an elbow instead of grabbing your arm.'],hotel:['need.assist','So staff say their name when they come to you.'],bistro:['need.dog','They didn’t ask about Kide. A table with room for him helps.'],venue:['need.dog','Kide will be with you. They didn’t ask.']},
+ sanna:{rail:['need.checkin','Receipts by email make your expense claim easier.'],hotel:['diet','Breakfast can have vegetarian options ready.'],bistro:['need.checkin','A receipt by email for your expense claim.'],venue:['diet','The interval snacks can be vegetarian.']},
+ laura:{rail:['allergy','The ferry café can keep cow’s milk away from Onni.'],hotel:['allergy','Breakfast can have something safe for Onni.'],bistro:['need.child','Onni will be with you. They can plan a quiet table.'],venue:['need.child','Onni will be with you, so they seat you near an exit.']}};
+function volCandidates(b){ const asked=b.fields, have=volKeys(b.id);
+  return Object.entries(P().fields).filter(([k,f])=>!asked.includes(k)&&!have.includes(k)&&f.kind!=='bulk'&&!/^health|^loc|^bank|^activity/.test(k)&&!(k==='dev.main'&&/No assistance/.test(f.value))&&!/^No assistance animal/.test(f.value)); }
+function sendVol(bid,items,dur,from){ const b=bz(bid); S.vol[bid]=S.vol[bid]||[];
+  items.forEach(it=>{ const id='v'+(++S.volN); S.vol[bid].push(Object.assign({id,dur,t:clock()},it)); audit(bid,it.k?F(it.k).label:'Note: “'+it.note+'”','sent by '+first()+' (not requested)',it.k?via(it.k):'typed by '+first()); });
+  log('volunteer',bid+' ['+items.map(i=>i.k||'note').join(',')+'] '+dur+' via '+from); }
+function unsendVol(bid,id){ const x=volList(bid).find(v=>v.id===id); if(!x) return; x.ended=true; audit(bid,x.k?F(x.k).label:'Note','taken back by '+first(),''); log('volunteer back',bid+' '+(x.k||'note')); }
+function endTrip(){ S.after=true; const closed=[], kept=[];
+  biz().forEach(b=>{ const d=S.dec[b.id]; let c=false;
+    if(d&&d.fields.length&&!S.revoked[b.id]&&d.dur==='trip'){ S.expired[b.id]=true; c=true; }
+    volActive(b.id).forEach(x=>{ if(x.dur==='trip'){ x.ended=true; x.byExp=true; c=true; } });
+    if(c){ closed.push(b.id); audit(b.id,'Items for this trip','access ended automatically: trip is over',''); }
+    if(granted(b.id).length) kept.push(b.id); });
+  S.afterSum={closed,kept}; log('after trip',closed.join(',')); }
+function undoTrip(){ S.after=false; S.expired={}; biz().forEach(b=>volList(b.id).forEach(x=>{ if(x.byExp){ x.ended=false; x.byExp=false; } })); S.afterSum=null; log('back to trip'); }
+function ruleOf(k){ return S.rules[k]||'ask'; }
+function applyRules(b,ch){ let n=0; b.fields.forEach(k=>{ const r=ruleOf(k); if(r==='auto'){ ch[k]='share'; n++; } else if(r==='never'){ ch[k]='deny'; n++; } }); return n; }
+const ruleCovers=b=>b.fields.every(k=>ruleOf(k)!=='ask');
+/* Helmi picks the smallest useful set */
+function suggestFor(b){ const out=[]; b.fields.forEach(k=>{ const f=F(k); let on=true, why='';
+    if(f.kind==='bulk'){ on=false; why=`${fmt(f.rows)} rows about you. ${b.name} can do what it promised without it.`; }
+    else if(k==='health.diag'){ on=false; why='Your diagnosis says what you have, not what you need. It can be used to exclude claims.'; }
+    else if(f.adv&&/not need|doesn.t need/i.test(f.adv)){ on=false; why=f.adv; }
+    else if(f.adv){ why=f.adv; }
+    else if(k==='card'){ why='A yes-or-no check of your card, for the free companion ticket.'; }
+    else if(k==='trip'){ why='Only your dates for this trip, so nothing has to be booked twice.'; }
+    else why=`One line, and it’s what makes the ${b.type.split(',')[0].toLowerCase()} work for you.`;
+    if(b.over&&f.kind!=='bulk'&&k!=='health.diag'){ on=false; why='An insurer doesn’t need this to sell you standard cover.'; }
+    out.push({k,on,why}); }); return out; }
+
+/* ---------- screens ---------- */
+function volCard(b){ const act=volActive(b.id); const sug=(SUG[S.persona]||{})[b.id];
+  const sugOk=sug&&!b.fields.includes(sug[0])&&!volKeys(b.id).includes(sug[0])&&!(S.tipNo||{})[b.id]&&P().fields[sug[0]];
+  return (act.length?`<h3 class="v-h">You also sent ${esc(b.name)}</h3><ul class="v-plain">${act.map(x=>`<li>${x.k?esc(F(x.k).label):'Note: “'+esc(x.note)+'”'} <span class="tiny muted">· ${esc(lc1(DUR[x.dur]).replace('she takes','you take'))}</span> <button class="v-link" data-v="unvol" data-b="${b.id}" data-i="${x.id}">Take back</button></li>`).join('')}</ul>`:'')+
+   (sugOk&&!ended(b.id)?`<div class="v-card tip">${helmi(`<b>Tip:</b> ${esc(b.name)} didn’t ask, but you told me: “${esc(youify(F(sug[0]).value))}”. ${esc(sug[1])} Send it?`)}<div class="v-quick two"><button class="v-btn" data-v="tipsend" data-b="${b.id}">Send for this trip</button><button class="v-btn alt" data-v="tipno" data-b="${b.id}">No thanks</button></div></div>`:'')+
+   (!ended(b.id)?`<button class="v-btn alt" data-v="vol" data-b="${b.id}">Send ${esc(b.name)} something they didn’t ask for</button>`:'');
+}
+function vVol(b){ const c=volCandidates(b), pick=V.volPick||(V.volPick={}); const note=V.volNote||'', dur=V.volDur||'trip';
+  const sens=Object.keys(pick).filter(k=>pick[k]&&SENS(k));
+  const n=Object.values(pick).filter(Boolean).length+(note.trim()?1:0);
+  return helmi(`Is there something ${esc(b.name)} should know that they didn’t ask for? Pick from what you’ve told me, or write a short note. They see only what you send, and you can take it back.`)+
+   `<ul class="v-sw">${c.map(([k,f])=>`<li><label class="sw-row"><span class="sw-txt"><b>${esc(f.label)}</b><span class="v-val">${esc(f.value)}</span><span class="tiny muted">From ${esc(vHolder(f.src))}</span></span><input type="checkbox" role="switch" class="sw-in" data-vchg="volpick" data-k="${k}" ${pick[k]?'checked':''}><span class="sw-ui" aria-hidden="true"></span></label></li>`).join('')}</ul>
+   ${sens.length?`<p class="v-adv"><b>Helmi:</b> ${sens.map(k=>esc(lcl(lab1(k)))).join(' and ')} ${sens.length>1?'are':'is'} health or personal information. ${esc(b.name)} didn’t ask for it. Send it only if it helps your visit.</p>`:''}
+   <div class="v-field"><label for="volnote" style="font-weight:600">Or write a note (optional)</label><textarea id="volnote" data-vchg="volnote" rows="2" maxlength="${VOLMAX}" placeholder="For example: I’m arriving late, around 23:00.">${esc(note)}</textarea><span class="tiny muted">Up to ${VOLMAX} characters. Don’t include card numbers or passwords.</span></div>
+   <div class="v-field"><label for="voldur" style="font-weight:600">For how long?</label><select id="voldur" data-vchg="voldur">${Object.entries(DUR).map(([k,l])=>`<option value="${k}" ${dur===k?'selected':''}>${l.replace('Until she takes','Until I take')}</option>`).join('')}</select></div>
+   <button class="v-btn" data-v="volsend" data-b="${b.id}" ${n?'':'disabled'}>${n?'Send '+n+' thing'+(n>1?'s':'')+' to '+esc(b.name):'Pick something to send'}</button>`;
+}
+const HPLAIN=r=>{ if(r==='delivered') return ['got','ok']; if(r==='allowed') return ['read, as you allowed','ok']; if(r.startsWith('withheld')) return ['didn’t get it: you said no','']; if(r.startsWith('blocked')) return ['tried to read it and was blocked','bad'];
+  if(r.startsWith('failed')) return ['couldn’t get it: the source was offline','bad']; if(r.startsWith('sent by')) return ['got it from you, without asking','ok']; if(r.startsWith('taken back')) return ['lost it: you took it back',''];
+  if(r.startsWith('access ended automatically')) return ['access ended on its own: the trip is over','']; if(r.startsWith('access ended')) return ['access ended: you took it back','']; if(r==='access given again') return ['access given again','ok'];
+  if(r.startsWith('message from '+first())) return ['got your message','']; if(r.startsWith('message from')) return ['sent you a message','']; if(r.startsWith('chat closed')) return ['can’t message you: you closed the chat','']; if(r.startsWith('chat opened')) return ['can message you again','']; if(r.startsWith('answered')) return ['got your answer: '+r.slice(10),'ok']; if(r.startsWith('not answered')) return ['got no answer: you skipped it',''];
+  return [r,'']; };
+function vHist(){ const f=V.hb||'all'; const L=S.audit.filter(a=>f==='all'||a.bid===f).slice().reverse();
+  return helmi(L.length?`Everything that happened with your data, newest first. Businesses see the same log for themselves.`:'Nothing has happened yet. When a business reads something, you’ll see it here.')+
+   `<div class="seg wrapit" role="radiogroup" aria-label="Filter by business"><label><input type="radio" name="vhb" value="all" data-vchg="hb" ${f==='all'?'checked':''}><span>All</span></label>${biz().map(b=>`<label><input type="radio" name="vhb" value="${b.id}" data-vchg="hb" ${f===b.id?'checked':''}><span>${esc(b.name)}</span></label>`).join('')}</div>
+   <ol class="v-hist">${L.map(a=>{const [t,c]=HPLAIN(a.result); return `<li class="${c}"><span class="tiny muted">${esc(a.t)}</span><span><b>${esc(a.biz)}</b> ${esc(t)}</span><span class="small">${esc(a.item)}</span></li>`;}).join('')}</ol>`;
+}
+function afterCard(){
+  if(!S.after) return biz().some(b=>granted(b.id).length)?`<div class="v-card"><p class="small"><b>After your trip.</b> Access you gave for this trip only ends on its own on 14 Nov. See what that looks like.</p><button class="v-btn alt" data-v="aftertrip">Skip to after the trip</button></div>`:'';
+  const s=S.afterSum||{closed:[],kept:[]};
+  return `<div class="v-card alert">${helmi(`Your trip is over. ${s.closed.length?'Access ended on its own for '+s.closed.map(id=>esc(bz(id).name)).join(', ')+'.':'Nothing was set to this trip only.'} ${s.kept.length?'Still open: '+s.kept.map(id=>esc(bz(id).name)+' ('+esc(lc1(DUR[(S.dec[id]||{}).dur||'until']).replace('she takes','you take'))+')').join(', ')+'.':'Nobody can see anything now.'}`)}<button class="v-btn alt" data-v="backtrip">Go back to the trip</button></div>`;
+}
+function ruleSel(k){ const r=ruleOf(k); return `<label class="rule"><span class="tiny">When asked:</span><select data-vchg="rule" data-k="${k}" aria-label="Rule for ${esc(F(k).label)}"><option value="ask" ${r==='ask'?'selected':''}>Ask me</option><option value="auto" ${r==='auto'?'selected':''}>Always share</option><option value="never" ${r==='never'?'selected':''}>Never share</option></select></label>`; }
+
+/* ---------- Helmi agent: understands plain requests about your data ---------- */
+const STOPW=new Set('the a an and or of to my me i for with is are can who what which does do did please your you it its this that their they them about from have has be on in at by any all'.split(' '));
+const FSYN={allergy:['allergy','allergies','allergic','peanut','peanuts','milk','penicillin','pollen'],diet:['diet','vegetarian','food','eat','lactose','dietary'],card:['disability card','eu card','card'],trip:['trip dates','dates','calendar','schedule'],
+ 'need.dog':['dog','kide','guide dog'],'dev.main':['wheelchair','device','chair'],'loc.hist':['location','locations','movements','gps','where i have been'],'bank.all':['bank','transactions','money'],'bank.dining':['spending','restaurant spending','dining'],
+ 'health.all':['health','medical','prescriptions','health record'],'health.diag':['diagnosis','diagnoses','condition'],activity:['activity','steps','sleep'],'need.child':['baby','onni','son'],'need.pram':['pushchair','pram','stroller']};
+const BSYN={rail:['train','rail','bus','coach','ferry','airline','flight','plane','airport','station','boat'],hotel:['hotel','reception','front desk'],bistro:['restaurant','bistro','brasserie','dinner','kitchen'],venue:['concert','theatre','theater','show','venue','hall','puppet'],ins:['insurance','insurer']};
+function findBiz(t){ let best=null,sc=0; biz().forEach(b=>{ let s=0; const words=b.name.toLowerCase().split(/\s+/).filter(w=>w.length>3&&!['hotel','concert','hall','insurance','line','theatre','family'].includes(w));
+  words.forEach(w=>{ if(t.includes(w)) s+=3; }); (BSYN[b.id]||[]).forEach(w=>{ if(new RegExp('\\b'+w+'\\b').test(t)) s+=2; }); if(s>sc){sc=s;best=b;} }); return best; }
+function findField(t){ let best=null,sc=0; Object.entries(P().fields).forEach(([k,f])=>{ let s=0; (FSYN[k]||[]).forEach(w=>{ if(t.includes(w)) s+=3; });
+  f.label.toLowerCase().split(/[^a-zäöå]+/).filter(w=>w.length>3&&!STOPW.has(w)&&!['transport','accommodation','dining','events','communication','need','needs'].includes(w)).forEach(w=>{ if(new RegExp('\\b'+w).test(t)) s+=2; });
+  if(s>sc){sc=s;best=k;} }); return sc?best:null; }
+const youify=s=>String(s).replace(new RegExp('\\b'+first()+'\\b','g'),'you').replace(/\bher\b/g,'your').replace(/\bshe\b/g,'you');
+function hAct(label,kind,args,alt){ const i=V.acts.push({kind,args})-1; return `<button class="v-btn ${alt?'alt':''}" data-v="hact" data-i="${i}">${esc(label)}</button>`; }
+function helmiAnswer(raw){ const t=' '+raw.toLowerCase().replace(/[’']/g,"'").replace(/[?!.,]/g,' ').replace(/\s+/g,' ')+' ';
+  const b=findBiz(t); let k=findField(t); const bn=b?esc(b.name):'';
+  const who=k=>biz().filter(x=>granted(x.id).includes(k));
+  if(/\b(hi|hello|hey|help|what can you do)\b/.test(t)&&!b&&!k) return `I look after your data for you. You can ask me things like “who can see my allergy?”, “what does ${esc(biz()[1].name)} see?”, “stop sharing with ${esc(biz()[2].name)}”, “tell ${esc(biz()[1].name)} I’m arriving at 23:00”, or “answer my requests for me”. I always ask before I do anything.`;
+
+  /* questions about sharing in general */
+  const FAQ=[
+   [/\b(what if|happens if|if i) (say|said) no\b|\brefuse\b|\bdecline\b/, ()=>b?`If you say no to ${bn}: ${esc(youify(yb(b).refuse))} Saying no never cancels your booking.`:'Saying no never cancels a booking. Each place tells you what happens instead, usually that you arrange it yourself, the old way. Ask me about a place, for example “what if I say no to the hotel?”'],
+   [/\bwhy\b.*\b(want|ask|need)/, ()=>b?`${bn} says: ${esc(youify(yb(b).why))}${k&&b.fields.includes(k)?' “'+esc(F(k).label)+'” is part of that.':''}`:'Tell me which place, for example “why does the hotel want my room location?”'],
+   [/\b(change my mind|undo|take it back|take back later|revoke later)\b/, ()=>'Yes. You can take back anything at any time, from Sharing or by telling me “stop sharing with …”. The place loses access straight away, and it’s written in your history.'],
+   [/\b(same owner|sister|group|pass (it )?on|share it with others|sell|what i (gave|shared with|sent))\b/, ()=>{ const own=biz().find(x=>x.owner); return own?`${esc(own.name)} has the same owner as ${esc(bz(own.owner).name)}, but neither can see what you gave the other. Each place gets only what you say yes to, and nobody can pass it on through me.`:'Each place gets only what you say yes to. Nobody can pass it on through me.'; }],
+   [/\b(safe|secure|hack|breach|leak|stolen)\b/, ()=>S.arch==='A'?'Your data stays where it already is, at Kanta, Kela, your bank and the rest. I keep only your rules and your access profile. If one place is hacked, only what it holds is at risk, and businesses only ever got single lines.':'Everything is on one server you own. It’s simpler, but if that server is broken into, all of it is at risk at once. That’s the trade-off the study asks about.'],
+   [/\b(network check|nokia|mobile network|operator)\b/, ()=>'Some places only need a yes or a no, like “are you at the station?”. I can ask the mobile network through Nokia Network as Code. They get the answer, never your location or your ID. You can turn this off in Sharing.'],
+   [/\b(who are you|what are you|are you (an )?ai|helmi)\b/, ()=>'I’m Helmi, an assistant that works for you, not for the businesses. I read requests, tell you what they mean, warn you when someone asks for too much, and only share what you say yes to. In this prototype I run inside the page.'],
+   [/\b(vault|how does this work|what is this)\b/, ()=>'You tell me your needs once. When a place asks for something, I show you who is asking, what for and why. You choose, item by item, and for how long. You can see exactly what each place sees and take it back any time.'],
+   [/\b(how long|duration|this trip only|30 days)\b/, ()=>'When you share, you choose: this trip only, 30 days, or until you take it back. Trip-only access ends on its own when the trip is over.'],
+   [/\b(rows?|how much data|how much do they)\b/, ()=>{ const tot=P().stats.total; const seen=biz().reduce((a,x)=>a+granted(x.id).reduce((c,y)=>c+F(y).rows,0),0); return `There are ${fmt(tot)} rows of data about you across ${P().sources.length} places. Right now businesses can see ${fmt(seen)} of them.`; }],
+  ];
+  for(const [rx,fn] of FAQ){ if(rx.test(t)) return fn(); }
+  if(/\b(should|worth|risky|ok to|okay to)\b/.test(t)){ if(!k) return 'What would you like to share? Tell me the item and the place, for example “should I share my location history with the insurer?”';
+    const f=F(k); const tgt=b?bn:'them';
+    if(f.kind==='bulk') return `I’d say no. “${esc(f.label)}” is ${fmt(f.rows)} rows about you. ${b?esc(b.name)+' can do what it promised without it.':'Nobody on your trip needs all of it.'}`;
+    if(k==='health.diag') return `I’d say no. Your diagnosis says what you have, not what you need. ${b&&b.over?'Insurers can use it to exclude claims.':''}`;
+    if(b&&b.fields.includes(k)) return `It’s one line, and ${tgt} gave a reason: ${esc(youify(yb(b).why))} If that helps you, sharing it is reasonable. You can take it back any time.`;
+    return `It’s a single line: “${esc(f.value)}”. ${b?esc(b.name)+' didn’t ask for it, so only send it if it helps your visit.':'Share it only with places it helps.'}`; }
+  if(/\b(stop|end|cancel|revoke|take back|block)\b/.test(t)&&!/\b(when|how long|until)\b/.test(t)){ if(!b) return 'Who should I stop sharing with? Say the name, for example “stop sharing with the hotel”.';
+    if(!granted(b.id).length) return `${bn} can’t see anything right now, so there’s nothing to stop.`;
+    return `${bn} can see ${granted(b.id).length} thing${granted(b.id).length>1?'s':''}: ${esc(granted(b.id).map(x=>lcl(lab1(x))).join(', '))}. Stop sharing all of it now?<div class="v-quick two">${hAct('Yes, stop sharing','stop',[b.id])}${hAct('No, keep it','none',[],1)}</div>`; }
+  if(/\b(always|never)\b/.test(t)&&k){ const v=/\balways\b/.test(t)?'auto':'never'; return `Make a rule: ${v==='auto'?'always share':'never share'} “${esc(F(k).label)}” when someone asks? You can change it in About me.<div class="v-quick two">${hAct('Yes, save the rule','rule',[k,v])}${hAct('No','none',[],1)}</div>`; }
+  if(/\b(send|tell|let|inform|message|notify)\b/.test(t)||(/\bshare\b/.test(t)&&b&&k)){ if(!b) return 'Who should I send it to? Say the name of the place.';
+    { const mm=t.match(/\b(my|onni's|our) ([a-z' ]{3,40})/); k=mm?findField(' '+mm[2]+' '):null; }
+    if(k&&b.fields.includes(k)){ const d=S.dec[b.id]; if(!d) return `${bn} already asked for that. Open their request and turn it on.<div class="v-quick">${hAct('Open the request','openreq',[b.id,k])}</div>`;
+      if(granted(b.id).includes(k)) return `${bn} already has “${esc(F(k).label)}”.`; return `${bn} asked for that and you said no. Change your answer?<div class="v-quick">${hAct('Change my answer','redo',[b.id])}</div>`; }
+    if(k&&volKeys(b.id).includes(k)) return `You already sent ${bn} “${esc(F(k).label)}”.`;
+    if(k&&F(k).kind==='bulk') return `That’s ${fmt(F(k).rows)} rows. I won’t send whole histories unasked. Send a single line or a note instead.`;
+    if(k) return `${bn} didn’t ask for this, but I can send it: “${esc(F(k).value)}”${SENS(k)?' This is health or personal information, so only send it if it helps.':''}<div class="v-quick two">${hAct('Send for this trip','vol',[b.id,{k}])}${hAct('Don’t send','none',[],1)}</div>`;
+    let note=raw.replace(/^\s*(please\s+)?(can you\s+)?(tell|let|send|inform|message|notify)\s+/i,'');
+    const nm=b.name.toLowerCase(); const idx=note.toLowerCase().indexOf(nm); const syn=(BSYN[b.id]||[]).concat([nm]).find(w=>note.toLowerCase().includes(w));
+    if(idx>=0) note=note.slice(idx+nm.length); else if(syn){ const j=note.toLowerCase().indexOf(syn); note=note.slice(j+syn.length); }
+    { const bw=new Set(b.name.toLowerCase().split(/\s+/).concat((BSYN[b.id]||[]).join(' ').split(' '),['the'])); let w=note.trim().split(/\s+/); while(w.length&&bw.has(w[0].toLowerCase().replace(/[^a-zäöå]/g,''))) w.shift(); note=w.join(' '); }
+    note=note.replace(/^\s*(know\s+)?(that|:|,|-)?\s*/i,'').replace(/^(to\s+)/i,'').trim(); if(note) note=note[0].toUpperCase()+note.slice(1); note=note.slice(0,VOLMAX);
+    if(note.length<3) return `What should I tell ${bn}? For example “tell ${bn} I’m arriving at 23:00”.`;
+    return `I’ll send ${bn} this note: “${esc(note)}”. They see it until the trip ends.<div class="v-quick two">${hAct('Send the note','vol',[b.id,{note}])}${hAct('Don’t send','none',[],1)}</div>`; }
+  if(/\b(answer|decide|handle|do)\b.*\b(for me|requests?)\b|\bsuggest/.test(t)){ const pend=pending(); if(!pend.length) return 'All your requests are answered. Nothing waiting.';
+    return `Here’s what I’d do. You check each one before anything is sent.<ul class="v-plain">${pend.map(x=>{const s=suggestFor(x); const on=s.filter(y=>y.on).length; return `<li><b>${esc(x.name)}</b>: share ${on} of ${x.fields.length}${on<x.fields.length?', say no to '+esc(s.filter(y=>!y.on).map(y=>lcl(lab1(y.k))).join(', ')):''}.</li>`;}).join('')}</ul><div class="v-quick">${pend.map(x=>hAct('Review '+x.name,'suggest',[x.id],1)).join('')}</div>`; }
+  if(/\b(who)\b/.test(t)&&k){ const w=who(k); return w.length?`${w.map(x=>esc(x.name)).join(', ')} can see “${esc(F(k).label)}”.<div class="v-quick">${w.map(x=>hAct('What '+x.name+' sees','see',[x.id],1)).join('')}</div>`:`Nobody can see “${esc(F(k).label)}”. It stays ${F(k).src==='vault'?'in your access profile':'at '+esc(srcOf(F(k).src).holder)}.`; }
+  if(/\b(who)\b/.test(t)&&/\b(see|access|know|has|have)\b/.test(t)){ const on=biz().filter(x=>granted(x.id).length); return on.length?`${on.map(x=>`${esc(x.name)} (${granted(x.id).length})`).join(', ')} can see some of your data.<div class="v-quick">${hAct('Open Sharing','tab',['share'],1)}</div>`:'Nobody can see your data. Only you, and me when you ask.'; }
+  if(/\b(want|asking|ask|request|need)\b/.test(t)&&b){ return `${bn} asks for ${b.fields.length} things: ${esc(b.fields.map(x=>lcl(lab1(x))).join(', '))}. ${esc(youify(yb(b).why))}${b.fields.some(x=>F(x).kind==='bulk')?' Some of it is whole histories. I’d say no to those.':''}<div class="v-quick">${hAct(S.dec[b.id]?'See my answer':'Open the request','openreq',[b.id],1)}</div>`; }
+  if(/\b(what|see|know)\b/.test(t)&&b){ const g=granted(b.id); return g.length?`${bn} sees ${g.length} thing${g.length>1?'s':''}: ${esc(g.map(x=>lcl(lab1(x))).join(', '))}${volActive(b.id).some(x=>x.note)?', and your note':''}. Nothing else.<div class="v-quick">${hAct('Show their screen','see',[b.id],1)}</div>`:`${bn} sees nothing from your vault.`; }
+  if(/\b(expire|expires|end|ends|how long|until when)\b/.test(t)){ const on=biz().filter(x=>granted(x.id).length); return on.length?on.map(x=>`${esc(x.name)}: ${esc(lc1(DUR[(S.dec[x.id]||volActive(x.id)[0]||{}).dur||'trip']).replace('she takes','you take'))}`).join('<br>'):'Nobody has access, so nothing needs to end.'; }
+  if(/\b(history|log|looked|read|happened)\b/.test(t)) { const L=S.audit.slice(-3).reverse(); return (L.length?'The latest:<br>'+L.map(a=>`${esc(a.t)} · ${esc(a.biz)} ${esc(HPLAIN(a.result)[0])} (${esc(a.item)})`).join('<br>'):'Nothing has happened yet.')+`<div class="v-quick">${hAct('Open sharing history','hist',[],1)}</div>`; }
+  if(/\b(where|kept|stored|keep)\b/.test(t)&&k) return `“${esc(F(k).label)}” is kept ${F(k).src==='vault'?'in your access profile, in this app':'at '+esc(srcOf(F(k).src).holder)+'. I fetch it only when you say yes'}.`;
+  if(k){ const w=who(k); return `“${esc(F(k).label)}”: ${esc(F(k).value)}. ${w.length?'Shared with '+w.map(x=>esc(x.name)).join(', ')+'.':'Not shared with anyone.'}`; }
+  if(b) return `${bn}: ${S.dec[b.id]?'you shared '+granted(b.id).length+' thing'+(granted(b.id).length===1?'':'s'):'waiting for your answer'}. Ask “what does ${bn} see?” or “stop sharing with ${bn}”.`;
+  return 'Sorry, I didn’t understand that. Try “who can see my allergy?”, “what does the hotel see?”, “tell the hotel I’m arriving late” or “answer my requests for me”.';
+}
+function chatBox(){ const L=S.chat.slice(-6);
+  return `<div class="v-card ask"><h3 class="v-h" style="margin:0">Ask Helmi</h3>${L.map(m=>m.me?`<p class="me-msg"><span class="sr">You: </span>${esc(m.t)}</p>`:helmi(m.h)).join('')}
+   <form id="askform" class="askrow"><label class="sr" for="vask">Ask Helmi</label><input id="vask" autocomplete="off" placeholder="Ask or tell me something" maxlength="200">${SR?`<button type="button" class="v-ib" data-v="mic" aria-label="Speak to Helmi" title="Speak">🎤</button>`:''}<button type="submit" class="v-ib txt" aria-label="Send">Send</button></form>
+   ${L.length?'':`<div class="chips">${['Who can see my data?','What does '+biz()[1].name+' see?','Answer my requests for me'].map(q=>`<button class="chip" data-v="askex" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>`}
+   <p class="tiny muted">I understand plain requests and always ask before acting. In this prototype I run inside the page, so nothing you type leaves it.</p></div>`;
+}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function askHelmi(q){ q=String(q||'').trim().slice(0,200); if(!q) return; V.acts=V.acts||[]; S.chat.push({me:1,t:q}); const h=helmiAnswer(q); S.chat.push({h}); S.ai.asks++; log('ask helmi',q.slice(0,80));
+  renderVault(); const box=document.querySelector('#v-screen .ask'); if(box) box.scrollIntoView({block:'end'}); const inp=$('vask'); if(inp) inp.focus({preventScroll:true});
+  say('Helmi: '+h.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,300)); if(READ) speak(h.replace(/<div class="v-quick[\s\S]*$/,'').replace(/<[^>]+>/g,' ')); }
+function runAct(i){ const a=(V.acts||[])[i]; if(!a) return; S.ai.acts++; const [x,y]=a.args||[]; let msg='';
+  S.chat.forEach(m=>{ if(m.h&&m.h.includes('data-i="'+i+'"')) m.h=m.h.replace(/<div class="v-quick[\s\S]*?<\/div>/,''); });
+  if(a.kind==='none') msg='OK, I won’t do anything.';
+  if(a.kind==='stop'){ setRevoked(x,true,'helmi'); msg=`Done. ${bz(x).name} can’t see anything now.`; }
+  if(a.kind==='rule'){ S.rules[x]=y; log('rule',x+'='+y+' via helmi'); msg=`Saved. I’ll ${y==='auto'?'always share':'never share'} “${F(x).label}” when someone asks.`; }
+  if(a.kind==='vol'){ sendVol(x,[y],'trip','helmi'); msg=`Sent to ${bz(x).name} for this trip. You can take it back from their page.`; }
+  if(a.kind==='suggest'){ const b=bz(x), ch=S.choice[x]={}; suggestFor(b).forEach(s=>ch[s.k]=s.on?'share':'deny'); V.sugg=V.sugg||{}; V.sugg[x]=1; S.ai.suggest[x]=1; S.openedAt[x]=Date.now(); vGo({tab:'trip',biz:x,see:null,src:null}); return; }
+  if(a.kind==='openreq'){ S.openedAt[x]=Date.now(); if(y){ (S.choice[x]=S.choice[x]||{})[y]='share'; } vGo({tab:'trip',biz:x,see:null,src:null}); return; }
+  if(a.kind==='redo'){ V.redo=true; S.choice[x]={}; S.dec[x].fields.forEach(k=>S.choice[x][k]='share'); S.dur[x]=S.dec[x].dur; vGo({tab:'trip',biz:x}); return; }
+  if(a.kind==='see'){ vGo({tab:'share',see:x,biz:null,src:null}); return; }
+  if(a.kind==='tab'){ vGo({tab:x,biz:null,see:null,src:null}); return; }
+  if(a.kind==='hist'){ vGo({tab:'share',see:null,hist:true,biz:null,src:null}); return; }
+  V.acts[i]={kind:'none',args:[]}; S.chat.push({h:esc(msg)}); renderLive(); renderVault(); say(msg); }
+
+const FUQ={hotel:{q:'What time will you arrive?',opts:['Before 15:00','15:00 to 18:00','After 18:00']},
+ rail:{q:'Will you have luggage that needs help?',opts:['Just a small bag','One suitcase','Two or more']},
+ bistro:{q:'How many people will be at your table?',opts:['Just me','Two','Three or more']},
+ venue:{q:'Would you like a text message two hours before?',opts:['Yes, please','No, thanks']},
+ ins:{q:'Would you like a call to go through the policy?',opts:['No, thanks','Yes, please']}};
+const BTPL=bid=>[FUQ[bid]&&FUQ[bid].q,'Do you have any food allergies we should know about?','Is there anything else we should know before you arrive?'].filter(Boolean);
+const SENSRX=/diagnos|medical condition|illness|passport|id number|identity number|personal id|social security|henkilötunnus|card number|cvv|pin\b|password|bank account|iban|salary|income/i;
+const ASKRX=/\b(send|share|tell|provide|give|photo|copy|scan|number|what is|what's|do you have|could you|can you|please)\b/i;
+const msgs=bid=>(S.msgs[bid]=S.msgs[bid]||[]);
+function bizSend(bid,text,from){ text=String(text||'').trim().slice(0,240); if(!text||S.chatOff[bid]) return false; const b=bz(bid);
+  msgs(bid).push({from:'biz',text,t:clock()}); S.unread[bid]=(S.unread[bid]||0)+1; audit(bid,'Message: “'+text+'”','message from '+b.name,'');
+  const low=' '+text.toLowerCase()+' ';
+  if(SENSRX.test(text)) msgs(bid).push({from:'helmi',kind:'warn',text:`${b.name} is asking for something sensitive that it didn’t ask for through the vault. You don’t have to answer. If you do, share only what helps your visit.`,t:clock()});
+  else if(ASKRX.test(text)){ const k=findField(low); if(k&&!granted(bid).includes(k)&&F(k).kind!=='bulk') msgs(bid).push({from:'helmi',kind:'offer',k,text:`${b.name} is asking about ${/^Onni/.test(lab1(k))?'':'your '}${lcl(lab1(k))}. I can share that line properly instead of you typing it: it’s logged, it ends with the trip, and you can take it back.`,t:clock()}); }
+  log('message from business',bid+' via '+from); return true; }
+function meSend(bid,text){ text=String(text||'').trim().slice(0,240); if(!text) return; const b=bz(bid);
+  msgs(bid).push({from:'me',text,t:clock()}); audit(bid,'Message: “'+text+'”','message from '+first(),''); log('message to business',bid);
+  if(SENSRX.test(text)||/\b\d{6}[-+a]\d{3}[0-9a-y]\b|\b\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4}\b/i.test(text)) msgs(bid).push({from:'helmi',kind:'warn',text:'That looks like an ID or card number. It’s safer not to send those in chat. I can share a yes-or-no check instead.',t:clock()});
+  const sess=S; setTimeout(()=>{ if(S!==sess||S.chatOff[bid]) return; msgs(bid).push({from:'biz',auto:1,text:/\?/.test(text)?'Thanks for asking. We’ll check and reply soon.':'Thank you, noted! See you soon.',t:clock()}); S.unread[bid]=(V.open&&V.biz===bid&&V.fu)?0:(S.unread[bid]||0)+1; renderLive(); },1600); }
+function lastBizQ(bid){ const L=msgs(bid); for(let i=L.length-1;i>=0;i--){ if(L[i].from==='me') return null; if(L[i].from==='biz'){ const q=Object.values(FUQ).find(f=>f.q===L[i].text); return q||null; } } return null; }
+function vChat(b){ const L=msgs(b.id); S.unread[b.id]=0; const q=lastBizQ(b.id), off=S.chatOff[b.id];
+  return helmi(L.length?`Your messages with ${esc(b.name)}. I watch for requests for your data and tell you if something looks wrong.`:`No messages yet. You can write to ${esc(b.name)} about anything. They only see what you write here and what you share.`)+
+   `<ol class="thread" aria-label="Messages">${L.map((m,i)=>m.from==='helmi'?`<li class="h">${helmi(esc(m.text)+(m.kind==='offer'&&!m.done?`<div class="v-quick two">${`<button class="v-btn" data-v="offer" data-b="${b.id}" data-i="${i}">Share it properly</button><button class="v-btn alt" data-v="offerno" data-b="${b.id}" data-i="${i}">Not now</button>`}</div>`:m.done?`<br><span class="tiny"><b>${m.done==='sent'?'Shared for this trip.':'OK.'}</b></span>`:''))}</li>`:`<li class="${m.from==='me'?'me':'them'}"><span class="sr">${m.from==='me'?'You':esc(b.name)}: </span>${esc(m.text)}<span class="tiny muted">${m.from==='me'?'You':esc(b.name)} · ${esc(m.t.slice(0,5))}</span></li>`).join('')}</ol>
+   ${off?`<p class="note">You closed this chat. ${esc(b.name)} can’t message you.</p><button class="v-btn alt" data-v="chatopen" data-b="${b.id}">Open the chat again</button>`:
+   `${q?`<div class="chips">${q.opts.map(o=>`<button class="chip" data-v="qr" data-b="${b.id}" data-a="${esc(o)}">${esc(o)}</button>`).join('')}</div>`:''}
+   <form id="chatform" class="askrow" data-b="${b.id}"><label class="sr" for="chatin">Message to ${esc(b.name)}</label><input id="chatin" autocomplete="off" maxlength="240" placeholder="Write to ${esc(b.name)}"><button type="submit" class="v-ib txt">Send</button></form>
+   <button class="v-btn alt" data-v="chatclose" data-b="${b.id}">Close the chat</button>`}
+   <p class="tiny muted">Messages are part of your sharing history. ${esc(b.name)} keeps them only for this booking.</p>`;
+}
+function chatBtn(b){ const n=S.unread[b.id]||0, L=msgs(b.id).length; return `<button class="v-btn alt" data-v="fu" data-b="${b.id}">Messages with ${esc(b.name)}${n?` <span class="badge" aria-label="${n} new">${n}</span>`:L?` (${msgs(b.id).filter(m=>m.from!=='helmi').length})`:''}</button>`; }
+function bMsg(b){ const L=msgs(b.id).filter(m=>m.from!=='helmi'); const off=S.chatOff[b.id];
+  return `<div class="b-panel"><h3>Messages with the customer</h3>
+   <ol class="thread b">${L.length?L.map(m=>`<li class="${m.from==='biz'?'me':'them'}">${esc(m.text)}<span class="tiny muted">${m.from==='biz'?(m.auto?'Auto-reply':'You'):'Customer'} · ${esc(m.t.slice(0,5))}</span></li>`).join(''):'<li class="sys small">No messages yet.</li>'}</ol>
+   ${off?'<p class="small"><b>The customer closed this chat.</b> You can’t send messages.</p>':`<p class="label" style="margin:8px 0 4px">Quick messages</p><div class="chips">${BTPL(b.id).map(t=>`<button class="chip" data-act="btpl" data-b="${b.id}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+   <form id="bchatform" class="askrow" data-b="${b.id}"><label class="sr" for="bchatin">Message to the customer</label><input id="bchatin" autocomplete="off" maxlength="240" placeholder="Write to the customer"><button type="submit" class="btn sm">Send</button></form>`}
+   <p class="tiny muted">The customer’s assistant reads messages too. To get data, ask through a vault request: it can’t be asked for in chat.</p></div>`; }
+
 /* ================================================================== business app */
 let BA={open:false,biz:'hotel',tab:'book',ret:null};
 const bizOnly=()=>document.body.classList.contains('biz-only');
-function bReqStatus(b){const d=S.dec[b.id]; if(!d) return '<span class="b-chip wait">Waiting for customer</span>'; if(S.revoked[b.id]) return '<span class="b-chip no">Access ended</span>'; if(!d.fields.length) return '<span class="b-chip no">Customer said no</span>'; return `<span class="b-chip ok">${d.fields.length} of ${b.fields.length} shared</span>`;}
+function bReqStatus(b){const d=S.dec[b.id]; if(!d) return '<span class="b-chip wait">Waiting for customer</span>'; if(ended(b.id)) return '<span class="b-chip no">Access ended</span>'; if(!d.fields.length) return '<span class="b-chip no">Customer said no</span>'; return `<span class="b-chip ok">${d.fields.length} of ${b.fields.length} shared</span>`;}
 function bBook(b){
   const o=OWN[b.id], p=P().profile, nm=p.name.split(' ')[0]+' '+p.name.split(' ')[1][0]+'.';
   const sib=biz().find(x=>x.owner===b.id), own=b.owner?bz(b.owner):null;
@@ -1601,6 +1888,7 @@ function bReq(b){
   return `<div class="b-panel"><div class="row" style="justify-content:space-between"><h3>Request to the customer's vault</h3>${bReqStatus(b)}</div>
    <dl class="facts"><dt>Reason we gave</dt><dd>${esc(b.why)}</dd><dt>If they say no</dt><dd>${esc(b.refuse)}</dd>${d&&g.length&&!S.revoked[b.id]?`<dt>Access</dt><dd>${esc(DUR[d.dur].replace('Until she takes it back','Until the customer takes it back'))}</dd>`:''}</dl>
    <div class="tbl" tabindex="0" role="region" aria-label="Items requested"><table><thead><tr><th scope="col">We asked for</th><th scope="col">Answer</th></tr></thead><tbody>${b.fields.map(k=>`<tr><td>${esc(F(k).label)}</td><td>${!d?'<span class="b-chip wait">waiting</span>':S.revoked[b.id]?'<span class="b-chip no">ended</span>':g.includes(k)?'<span class="b-chip ok">shared</span>':'<span class="b-chip no">not shared</span>'}</td></tr>`).join('')}</tbody></table></div>
+   ${volActive(b.id).length?`<h3 style="margin-top:14px">Sent by the customer</h3><ul class="small">${volActive(b.id).map(x=>`<li>${x.k?esc(F(x.k).label):'Note: “'+esc(x.note)+'”'}</li>`).join('')}</ul><p class="tiny muted">You didn’t ask for these. The customer chose to send them.</p>`:''}
    <p class="tiny muted">We can only ask. We cannot see anything the customer has not approved, and we cannot ask again for something they refused on this booking.</p></div>`;
 }
 function bLog(b){
@@ -1614,8 +1902,8 @@ function renderBApp(keep){
   $('b-top').innerHTML=`<h2 id="b-title" tabindex="-1">${esc(b.name)} <span>· ${esc(OWN[b.id].app)}</span></h2>
     <label class="sr" for="b-as">Signed in as</label><select id="b-as">${biz().map(x=>`<option value="${x.id}" ${x.id===b.id?'selected':''}>Signed in as ${esc(x.name)}</option>`).join('')}</select>
     ${bizOnly()?'<button class="bclose" data-act="bmode-off">Researcher</button>':'<button class="bclose" data-bclose aria-label="Close the business app">Close</button>'}`;
-  $('b-nav').innerHTML=[['book','Bookings'],['req','Vault requests'],['log','Access log']].map(([k,l])=>`<button data-bt="${k}" ${BA.tab===k?'aria-current="page"':''}>${l}</button>`).join('');
-  $('b-screen').innerHTML=BA.tab==='book'?bBook(b):BA.tab==='req'?bReq(b):bLog(b);
+  $('b-nav').innerHTML=[['book','Bookings'],['req','Vault requests'],['msg','Messages'],['log','Access log']].map(([k,l])=>`<button data-bt="${k}" ${BA.tab===k?'aria-current="page"':''}>${l}</button>`).join('');
+  $('b-screen').innerHTML=BA.tab==='book'?bBook(b):BA.tab==='req'?bReq(b):BA.tab==='msg'?bMsg(b):bLog(b);
   if(key){ const f=key.startsWith('bt|')?el.querySelector(`[data-bt="${key.slice(3)}"]`):document.getElementById(key); if(f) f.focus({preventScroll:true}); }
 }
 function openBApp(bid){ BA.ret=document.activeElement; BA.open=true; if(bid) BA.biz=bid; BA.tab='book'; renderBApp(); $('b-title').focus(); log('business app open',BA.biz); }
@@ -1626,6 +1914,7 @@ document.addEventListener('click',e=>{
   const m=e.target.closest('[data-act="bmode"],[data-act="bmode-off"]'); if(m){ setBmode(m.dataset.act==='bmode'); return; }
   if(e.target.closest('[data-bclose]')){ closeBApp(); return; }
   const t=e.target.closest('[data-bt]'); if(t){ BA.tab=t.dataset.bt; renderBApp(true); log('business app tab',BA.tab); return; }
+  const tp=e.target.closest('[data-act="btpl"]'); if(tp){ if(bizSend(tp.dataset.b,tp.dataset.t,'business app')) renderLive(); return; }
   if(e.target.id==='bapp'&&!bizOnly()) closeBApp();
 });
 document.addEventListener('change',e=>{ if(e.target.id==='b-as'){ BA.biz=e.target.value; renderBApp(true); log('business app as',BA.biz); } });
