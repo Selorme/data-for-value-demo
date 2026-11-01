@@ -1142,9 +1142,10 @@ function srcDown(sid){ if(!S.down) return false; return S.arch==='A'?S.down===si
 
 function vHome(){
   const pend=pending(), done=biz().filter(b=>S.dec[b.id]);
-  const hi=S.arch==='A'?`Hi ${esc(first())}, I'm Helmi. Your data stays where it is: at Kanta, Kela, your bank and the rest. When someone asks for something, I tell you. I only fetch what you say yes to.`
+  let hi=S.arch==='A'?`Hi ${esc(first())}, I'm Helmi. Your data stays where it is: at Kanta, Kela, your bank and the rest. When someone asks for something, I tell you. I only fetch what you say yes to.`
     :`Hi ${esc(first())}, I'm Helmi. Your data is on your own server. When someone asks for something, I tell you. I only pass on what you say yes to.`;
   const fus=biz().filter(b=>S.unread[b.id]);
+  if(canSpeak&&!READ) hi+=' Tap 🔊 at the top and I’ll read every screen aloud, including each request.';
   return helmi(hi)+chatBox()+
    fus.map(b=>{const m=msgs(b.id).filter(x=>x.from==='biz').pop(); return `<div class="v-card alert"><p class="v-big"><b>${esc(b.name)}</b> sent you a message</p><p class="small">“${esc(m?m.text:'')}”</p><button class="v-btn" data-v="fu" data-b="${b.id}">Open messages</button></div>`;}).join('')+
    (pend.length?`<h3 class="v-h">New requests (${pend.length})</h3>`+pend.map(b=>`<div class="v-card alert"><p class="v-big"><b>${esc(b.name)}</b> is asking for ${b.fields.length} things</p><p class="small muted">${esc(b.when)} · ${esc(b.type)}</p><button class="v-btn" data-v="biz" data-b="${b.id}">See what they ask</button>${ruleCovers(b)?`<button class="v-btn alt" data-v="ruleanswer" data-b="${b.id}">Answer with my rules</button>`:''}</div>`).join('')
@@ -1355,7 +1356,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target, c=t.dataset.vchg; if(c){
-    if(c==='sw'){ S.choice[t.dataset.b][t.dataset.k]=t.checked?'share':'deny'; log('vault choose',t.dataset.b+' '+t.dataset.k+'='+(t.checked?'share':'deny')); renderVault(true); }
+    if(c==='sw'){ S.choice[t.dataset.b][t.dataset.k]=t.checked?'share':'deny'; log('vault choose',t.dataset.b+' '+t.dataset.k+'='+(t.checked?'share':'deny')); renderVault(true);  if(READ) speak(F(t.dataset.k).label+(t.checked?', on':', off')); }
     if(c==='dur'){ S.dur[t.dataset.b]=t.value; log('vault duration',t.dataset.b+' '+t.value); }
     if(c==='volpick'){ (V.volPick=V.volPick||{})[t.dataset.k]=t.checked; renderVault(true); }
     if(c==='voldur'){ V.volDur=t.value; }
@@ -1660,8 +1661,25 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.body.clas
 /* read aloud */
 const canSpeak=('speechSynthesis' in window);
 let READ=false; try{ READ=localStorage.getItem('tos-read')==='1'; }catch(e){}
-function speak(t){ if(!canSpeak||!t) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t.replace(/\s+/g,' ').trim()); u.lang='en-GB'; u.rate=0.95; const v=speechSynthesis.getVoices().find(v=>/^en(-|_)GB/i.test(v.lang))||speechSynthesis.getVoices().find(v=>/^en/i.test(v.lang)); if(v) u.voice=v; speechSynthesis.speak(u); }
-function readScreen(){ const b=document.querySelector('#v-screen .helmi .bubble'); const h=$('v-title'); speak((h?h.innerText+'. ':'')+(b?b.innerText.replace(/^Helmi:\s*/,''):'')); }
+function speak(t){ if(!canSpeak||!t) return; speechSynthesis.cancel(); const txt=t.replace(/\s+/g,' ').trim(); const v=speechSynthesis.getVoices().find(v=>/^en(-|_)GB/i.test(v.lang))||speechSynthesis.getVoices().find(v=>/^en/i.test(v.lang));
+  const parts=[]; let cur=''; txt.split(/(?<=[.!?:])\s+/).forEach(x=>{ if((cur+' '+x).length>220&&cur){ parts.push(cur); cur=x; } else cur=cur?cur+' '+x:x; }); if(cur) parts.push(cur);
+  parts.forEach(p=>{ const u=new SpeechSynthesisUtterance(p); u.lang='en-GB'; u.rate=0.95; if(v) u.voice=v; speechSynthesis.speak(u); }); }
+function screenText(){ const root=$('v-screen'); if(!root) return ''; const out=[], acts=[]; const BLOCK=/^(P|LI|H1|H2|H3|H4|DIV|LABEL|SECTION|OL|UL|TABLE|TR|FORM|FIELDSET|LEGEND)$/;
+  function walk(n){ if(n.nodeType===3){ out.push(n.nodeValue); return; } if(n.nodeType!==1) return; const el=n;
+    if(el.hidden||el.classList.contains('h-read')||el.classList.contains('sr')||el.getAttribute('aria-hidden')==='true') return;
+    if(el.classList.contains('helmi')){ const b=el.querySelector('.bubble'); out.push('. Helmi says: '); if(b) [...b.childNodes].forEach(walk); out.push('. '); return; }
+    if(el.tagName==='BUTTON'||el.tagName==='A'){ const t=(el.getAttribute('aria-label')||el.innerText||'').replace(/\s+/g,' ').trim(); if(t&&!/^[🔊🎤›]$/.test(t)&&!el.closest('#v-nav')) acts.push(t); if(el.classList.contains('v-cardhead')||el.closest('.v-list,.v-steps')) out.push('. '+t+'. '); return; }
+    if(el.tagName==='INPUT'){ if(el.type==='checkbox') out.push(el.checked?', switched on. ':', switched off. '); return; }
+    if(el.tagName==='SELECT'){ const o=el.options[el.selectedIndex]; out.push(': '+(o?o.text:'')+'. '); return; }
+    if(el.tagName==='TEXTAREA'){ return; }
+    if(el.tagName==='TABLE'){ out.push('. A table. '); return; }
+    const blk=BLOCK.test(el.tagName)||(el.tagName==='SPAN'&&/\b(v-val|tiny|small|pill|sw-txt)\b/.test(el.className)); if(blk) out.push('. '); [...el.childNodes].forEach(walk); if(blk) out.push('. ');
+    if(el.tagName==='B'||el.classList.contains('v-val')) out.push(' '); }
+  [...root.childNodes].forEach(walk);
+  let t=out.join('').replace(/\s+/g,' ').replace(/(\s*\.\s*)+/g,'. ').replace(/\s+([,:])/g,'$1').replace(/:\s*\./g,':').replace(/([?!])\.?\s*:/g,'$1').replace(/([?!:])\s*\./g,'$1').replace(/\.\s*,/g,',').replace(/^\.\s*/,'').trim();
+  const uniq=[...new Set(acts)].slice(0,6); if(uniq.length) t+=' You can: '+uniq.join('; ')+'.';
+  return t; }
+function readScreen(){ const h=$('v-title'); speak((h?h.innerText+'. ':'')+screenText()); }
 
 /* ================================================================== new in v2: send it yourself, follow-ups, history, expiry, rules, Helmi agent */
 const VOLMAX=200;
