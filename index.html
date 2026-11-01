@@ -985,6 +985,7 @@ function audit(bid,item,result,v){ S.audit.push({t:clock(),biz:bz(bid).name,bid,
 function decide(bid,fields,dur,from){
   const b=bz(bid);
   S.dec[bid]={fields,dur,secs:Math.round((Date.now()-(S.openedAt[bid]||S.t0))/1000),asked:b.fields.length,from};
+  (S.vol&&S.vol[bid]||[]).forEach(x=>{ if(x.k&&b.fields.includes(x.k)&&!x.ended){ x.ended=true; x.merged=true; } });
   delete S.revoked[bid];
   b.fields.forEach(k=>{ if(fields.includes(k)) audit(bid,F(k).label,fieldUp(k)?'delivered':'failed: source offline',via(k)); else audit(bid,F(k).label,'withheld: she said no',''); });
   if(b.owner&&S.dec[b.owner]&&S.dec[b.owner].fields.length) audit(bid,'Anything '+first()+' gave '+bz(b.owner).name,'blocked: belongs to another organisation','');
@@ -1002,7 +1003,8 @@ function staffScreen(b){
   const o=OWN[b.id], d=S.dec[b.id], g=granted(b.id), p=P().profile;
   const nm=p.name.split(' ')[0]+' '+p.name.split(' ')[1][0]+'.';
   const rows=b.fields.map(k=>{const f=F(k); let v,cls='';
-    if(!d){v='Waiting for the customer to answer'; cls='wait';}
+    if(!d&&volKeys(b.id).includes(k)) v=fieldUp(k)?f.value:'Could not be fetched: source offline.';
+    else if(!d){v='Waiting for the customer to answer'; cls='wait';}
     else if(ended(b.id)){v=S.expired[b.id]&&!S.revoked[b.id]?'Access ended: the trip is over':'Access ended'; cls='no';}
     else if(!g.includes(k)){v='Not shared'; cls='no';}
     else if(!fieldUp(k)){v='Could not be fetched: source offline. Ask the customer.'; cls='wait';}
@@ -1016,7 +1018,8 @@ function staffInner(b){
   const o=OWN[b.id], d=S.dec[b.id], g=granted(b.id), p=P().profile;
   const nm=p.name.split(' ')[0]+' '+p.name.split(' ')[1][0]+'.';
   const rows=b.fields.map(k=>{const f=F(k); let v,cls='';
-    if(!d){v='Waiting for the customer to answer'; cls='wait';}
+    if(!d&&volKeys(b.id).includes(k)) v=fieldUp(k)?f.value:'Could not be fetched: source offline.';
+    else if(!d){v='Waiting for the customer to answer'; cls='wait';}
     else if(ended(b.id)){v=S.expired[b.id]&&!S.revoked[b.id]?'Access ended: the trip is over':'Access ended'; cls='no';}
     else if(!g.includes(k)){v='Not shared'; cls='no';}
     else if(!fieldUp(k)){v='Could not be fetched: source offline. Ask the customer.'; cls='wait';}
@@ -1024,7 +1027,7 @@ function staffInner(b){
     return `<li class="${cls}"><span class="k">${esc(f.label)}</span><span class="vv">${cls==='no'?'<span aria-hidden="true">🔒 </span>':''}${esc(v)}${!cls&&f.verified?`<span class="from">Checked by: ${esc(f.verified)}</span>`:''}</span></li>`;}).join('');
   return `<div class="cust"><div class="avatar sm" aria-hidden="true">${esc(nm[0])}</div><div><b>${esc(nm)}</b><br><span class="tiny muted">Booking ${esc(o.ref)} · ${esc(o.item)}</span></div></div>
       <p class="label" style="margin-top:4px">From the customer's vault</p>
-      <ul class="slots">${rows}${(typeof NET!=='undefined'?netDone(b.id):[]).map(c=>`<li><span class="k">Network check · ${esc(c.api)}</span><span class="vv">✓ ${esc(c.sees)}<span class="from">Answer from the mobile network via Nokia Network as Code. No data received.</span></span></li>`).join('')}${volActive(b.id).map(x=>`<li class="sent"><span class="k">${x.k?esc(F(x.k).label):'Note from the customer'}</span><span class="vv">${x.k?(fieldUp(x.k)?esc(F(x.k).value):'Could not be fetched: source offline.'):'“'+esc(x.note)+'”'}<span class="from">Sent by the customer. You didn’t ask for this.</span></span></li>`).join('')}${(()=>{const m=msgs(b.id).filter(x=>x.from==='me').pop(); return m?`<li class="sent"><span class="k">Latest message from the customer</span><span class="vv">“${esc(m.text)}”</span></li>`:'';})()}</ul>
+      <ul class="slots">${rows}${(typeof NET!=='undefined'?netDone(b.id):[]).map(c=>`<li><span class="k">Network check · ${esc(c.api)}</span><span class="vv">✓ ${esc(c.sees)}<span class="from">Answer from the mobile network via Nokia Network as Code. No data received.</span></span></li>`).join('')}${volActive(b.id).filter(x=>!(x.k&&b.fields.includes(x.k))).map(x=>`<li class="sent"><span class="k">${x.k?esc(F(x.k).label):'Note from the customer'}</span><span class="vv">${x.k?(fieldUp(x.k)?esc(F(x.k).value):'Could not be fetched: source offline.'):'“'+esc(x.note)+'”'}<span class="from">Sent by the customer. You didn’t ask for this.</span></span></li>`).join('')}${(()=>{const m=msgs(b.id).filter(x=>x.from==='me').pop(); return m?`<li class="sent"><span class="k">Latest message from the customer</span><span class="vv">“${esc(m.text)}”</span></li>`:'';})()}</ul>
       <p class="tiny muted">${d&&g.length&&!ended(b.id)?'Available '+esc(lc1(DUR[d.dur]))+'. ':''}This screen cannot show anything else about the customer.</p>`;
 }
 function auditPanel(b){
@@ -1152,7 +1155,7 @@ function vHome(){
      :helmi('No new requests. Nobody can see anything you haven\'t said yes to.'))+
    (done.length?`<h3 class="v-h">Done</h3><ul class="v-list">${done.map(b=>{const n=S.dec[b.id].fields.length; return `<li><button data-v="biz" data-b="${b.id}"><span><b>${esc(b.name)}</b><br><span class="small muted">${S.revoked[b.id]?'You stopped sharing':S.expired[b.id]?'Ended with the trip':n?'You shared '+n+' thing'+(n>1?'s':''):'You said no'}${volActive(b.id).length?' · you sent '+volActive(b.id).length+' more':''}</span></span><span aria-hidden="true">›</span></button></li>`;}).join('')}</ul>`:'')+
    (STUDY&&done.length&&!S.task?(pend.length?`<div class="v-quick"><button class="v-btn alt" data-v="finish">I'm finished</button></div>`:`<div class="v-card alert"><p class="v-big"><b>All requests answered.</b></p><p class="small">Have a look around if you like, then finish and send your answers.</p><button class="v-btn" data-v="finish">Finish and send</button></div>`):'')+
-   afterCard()+`<div class="v-quick"><button class="v-btn alt" data-v="tab" data-t="data">What do you keep about me?</button><button class="v-btn alt" data-v="tab" data-t="share">Who can see my data?</button></div>`;
+   msgList()+afterCard()+`<div class="v-quick"><button class="v-btn alt" data-v="tab" data-t="data">What do you keep about me?</button><button class="v-btn alt" data-v="tab" data-t="share">Who can see my data?</button></div>`;
 }
 function vTrip(){
   return helmi(`Your trip to ${CITY()}, 12 to 14 November. Each place asks you first.`)+
@@ -1172,7 +1175,7 @@ function vRequest(b){
    <ul class="v-sw">${b.fields.map(k=>{const f=F(k), on=ch[k]==='share'; return `<li><label class="sw-row"><span class="sw-txt"><b>${esc(f.label)}</b>${f.kind==='bulk'?` <span class="pill warn">${fmt(f.rows)} rows</span>`:''}<span class="v-val">${esc(f.value)}</span><span class="tiny muted">From ${esc(vHolder(f.src))}${ruleOf(k)!=='ask'?' · <b>your rule: '+(ruleOf(k)==='auto'?'always share':'never share')+'</b>':''}</span></span><input type="checkbox" role="switch" class="sw-in" data-vchg="sw" data-b="${b.id}" data-k="${k}" ${on?'checked':''}><span class="sw-ui" aria-hidden="true"></span></label>${adv(k)}</li>`;}).join('')}</ul>
    <div class="v-field"><label for="vdur" style="font-weight:600">For how long?</label><select id="vdur" data-vchg="dur" data-b="${b.id}">${Object.entries(DUR).map(([k,l])=>`<option value="${k}" ${dur===k?'selected':''}>${l.replace('Until she takes','Until I take')}</option>`).join('')}</select></div>
    <p class="small"><b>If you say no:</b> ${esc(yb(b).refuse)}</p>
-   <button class="v-btn" data-v="send" data-b="${b.id}">${n?'Share '+n+' thing'+(n>1?'s':''):'Share nothing'}</button>`;
+   <button class="v-btn" data-v="send" data-b="${b.id}">${n?'Share '+n+' thing'+(n>1?'s':''):'Share nothing'}</button>`+chatBtn(b);
 }
 function vDone(b){
   const d=S.dec[b.id], g=granted(b.id);
@@ -1243,7 +1246,7 @@ function vSee(b){
    <ul class="v-list v-hide">${srcRows.filter(x=>x.rest>0).map(x=>`<li><div class="v-hrow"><span><b>${esc(x.s.id==='vault'?'About me (other lines)':x.s.name)}</b><br><span class="small muted">${x.seen?'Only the line'+(x.seen>1?'s':'')+' you shared':'None of it'}</span></span><span class="v-n">🔒 ${fmt(x.rest)}</span></div></li>`).join('')}</ul>
    ${b.owner?helmi(`${esc(bz(b.owner).name)} is owned by the same group, but it can't pass anything to ${esc(b.name)}.`):''}
    ${biz().some(x=>x.owner===b.id)?helmi(`${esc(biz().find(x=>x.owner===b.id).name)} belongs to the same group. It can't see any of this.`):''}
-   ${volCard(b)}
+   ${volCard(b)}${chatBtn(b)}
    ${g.length?`<button class="v-btn danger" data-v="stop" data-b="${b.id}">Stop sharing with ${esc(b.name)}</button>`:''}`;
 }
 function vTitle(){
@@ -1782,7 +1785,7 @@ function helmiAnswer(raw){ const t=' '+raw.toLowerCase().replace(/[’']/g,"'").
    [/\b(what if|happens if|if i) (say|said) no\b|\brefuse\b|\bdecline\b/, ()=>b?`If you say no to ${bn}: ${esc(youify(yb(b).refuse))} Saying no never cancels your booking.`:'Saying no never cancels a booking. Each place tells you what happens instead, usually that you arrange it yourself, the old way. Ask me about a place, for example “what if I say no to the hotel?”'],
    [/\bwhy\b.*\b(want|ask|need)/, ()=>b?`${bn} says: ${esc(youify(yb(b).why))}${k&&b.fields.includes(k)?' “'+esc(F(k).label)+'” is part of that.':''}`:'Tell me which place, for example “why does the hotel want my room location?”'],
    [/\b(change my mind|undo|take it back|take back later|revoke later)\b/, ()=>'Yes. You can take back anything at any time, from Sharing or by telling me “stop sharing with …”. The place loses access straight away, and it’s written in your history.'],
-   [/\b(same owner|sister|group|pass (it )?on|share it with others|sell|what i (gave|shared with|sent))\b/, ()=>{ const own=biz().find(x=>x.owner); return own?`${esc(own.name)} has the same owner as ${esc(bz(own.owner).name)}, but neither can see what you gave the other. Each place gets only what you say yes to, and nobody can pass it on through me.`:'Each place gets only what you say yes to. Nobody can pass it on through me.'; }],
+   [/\b(same owner|sister|group|pass (it )?on|share it with others|sell|what i (gave|told|shared with|sent))\b/, ()=>{ const own=biz().find(x=>x.owner); return own?`${esc(own.name)} has the same owner as ${esc(bz(own.owner).name)}, but neither can see what you gave the other. Each place gets only what you say yes to, and nobody can pass it on through me.`:'Each place gets only what you say yes to. Nobody can pass it on through me.'; }],
    [/\b(safe|secure|hack|breach|leak|stolen)\b/, ()=>S.arch==='A'?'Your data stays where it already is, at Kanta, Kela, your bank and the rest. I keep only your rules and your access profile. If one place is hacked, only what it holds is at risk, and businesses only ever got single lines.':'Everything is on one server you own. It’s simpler, but if that server is broken into, all of it is at risk at once. That’s the trade-off the study asks about.'],
    [/\b(network check|nokia|mobile network|operator)\b/, ()=>'Some places only need a yes or a no, like “are you at the station?”. I can ask the mobile network through Nokia Network as Code. They get the answer, never your location or your ID. You can turn this off in Sharing.'],
    [/\b(who are you|what are you|are you (an )?ai|helmi)\b/, ()=>'I’m Helmi, an assistant that works for you, not for the businesses. I read requests, tell you what they mean, warn you when someone asks for too much, and only share what you say yes to. In this prototype I run inside the page.'],
@@ -1790,6 +1793,11 @@ function helmiAnswer(raw){ const t=' '+raw.toLowerCase().replace(/[’']/g,"'").
    [/\b(how long|duration|this trip only|30 days)\b/, ()=>'When you share, you choose: this trip only, 30 days, or until you take it back. Trip-only access ends on its own when the trip is over.'],
    [/\b(rows?|how much data|how much do they)\b/, ()=>{ const tot=P().stats.total; const seen=biz().reduce((a,x)=>a+granted(x.id).reduce((c,y)=>c+F(y).rows,0),0); return `There are ${fmt(tot)} rows of data about you across ${P().sources.length} places. Right now businesses can see ${fmt(seen)} of them.`; }],
   ];
+  if(/\b(choose|choice|optional|have to|must i|required|only some|some things|not share|not to share|don't (want to )?share|do not share|hide|keep (it |my \w+ )?private|say no|refuse|opt out)\b/.test(t)&&!(b&&/\b(what if|happens if|if i)\b/.test(t))){
+    const lead=/have to|must i|required|everything/.test(t)?'No, you choose.':/don't|do not|not to|refuse|opt out|hide|private/.test(t)?'That’s fine.':'Yes.';
+    const base=lead+' Every item has its own switch, and they all start off. You turn on only what you want, and you can share nothing at all. Saying no never cancels a booking: the place tells you what happens instead.';
+    if(k) return `${base} “${esc(F(k).label)}” stays private unless you turn it on${who(k).length?'. Right now '+who(k).map(x=>esc(x.name)).join(', ')+' can see it':''}. Want a rule so I never share it?<div class="v-quick two">${hAct('Never share it','rule',[k,'never'])}${who(k).length?hAct('Stop sharing it','unshare',[k],1):hAct('No rule','none',[],1)}</div>`;
+    return base; }
   for(const [rx,fn] of FAQ){ if(rx.test(t)) return fn(); }
   if(/\b(should|worth|risky|ok to|okay to)\b/.test(t)){ if(!k) return 'What would you like to share? Tell me the item and the place, for example “should I share my location history with the insurer?”';
     const f=F(k); const tgt=b?bn:'them';
@@ -1797,14 +1805,17 @@ function helmiAnswer(raw){ const t=' '+raw.toLowerCase().replace(/[’']/g,"'").
     if(k==='health.diag') return `I’d say no. Your diagnosis says what you have, not what you need. ${b&&b.over?'Insurers can use it to exclude claims.':''}`;
     if(b&&b.fields.includes(k)) return `It’s one line, and ${tgt} gave a reason: ${esc(youify(yb(b).why))} If that helps you, sharing it is reasonable. You can take it back any time.`;
     return `It’s a single line: “${esc(f.value)}”. ${b?esc(b.name)+' didn’t ask for it, so only send it if it helps your visit.':'Share it only with places it helps.'}`; }
-  if(/\b(stop|end|cancel|revoke|take back|block)\b/.test(t)&&!/\b(when|how long|until)\b/.test(t)){ if(!b) return 'Who should I stop sharing with? Say the name, for example “stop sharing with the hotel”.';
+  if(/\b(stop|end|cancel|revoke|take back|block)\b/.test(t)&&/\b(everyone|everybody|all|anyone|every place|everything)\b/.test(t)&&!b){ const on=biz().filter(x=>granted(x.id).length); if(!on.length) return 'Nobody can see anything right now.'; return `${on.map(x=>esc(x.name)).join(', ')} can see some of your data. Stop sharing with all of them now?<div class="v-quick two">${hAct('Yes, stop everything','stopall',[])}${hAct('No','none',[],1)}</div>`; }
+  if(/\bread\b.*\b(aloud|to me|screen|out)\b|\baloud\b|\bcan'?t see the screen\b/.test(t)) return HFAQ.find(f=>f.id==='speak').a();
+  if(/\b(stop|end|cancel|revoke|take back|block)\b/.test(t)&&!/\b(when|how long|until)\b/.test(t)){ if(!b) return 'Open Sharing and tap “Stop sharing” next to a place, or tell me the name, for example “stop sharing with the hotel”. It ends straight away.';
     if(!granted(b.id).length) return `${bn} can’t see anything right now, so there’s nothing to stop.`;
     return `${bn} can see ${granted(b.id).length} thing${granted(b.id).length>1?'s':''}: ${esc(granted(b.id).map(x=>lcl(lab1(x))).join(', '))}. Stop sharing all of it now?<div class="v-quick two">${hAct('Yes, stop sharing','stop',[b.id])}${hAct('No, keep it','none',[],1)}</div>`; }
   if(/\b(always|never)\b/.test(t)&&k){ const v=/\balways\b/.test(t)?'auto':'never'; return `Make a rule: ${v==='auto'?'always share':'never share'} “${esc(F(k).label)}” when someone asks? You can change it in About me.<div class="v-quick two">${hAct('Yes, save the rule','rule',[k,v])}${hAct('No','none',[],1)}</div>`; }
   if(/\b(send|tell|let|inform|message|notify)\b/.test(t)||(/\bshare\b/.test(t)&&b&&k)){ if(!b) return 'Who should I send it to? Say the name of the place.';
     { const mm=t.match(/\b(my|onni's|our) ([a-z' ]{3,40})/); k=mm?findField(' '+mm[2]+' '):null; }
-    if(k&&b.fields.includes(k)){ const d=S.dec[b.id]; if(!d) return `${bn} already asked for that. Open their request and turn it on.<div class="v-quick">${hAct('Open the request','openreq',[b.id,k])}</div>`;
-      if(granted(b.id).includes(k)) return `${bn} already has “${esc(F(k).label)}”.`; return `${bn} asked for that and you said no. Change your answer?<div class="v-quick">${hAct('Change my answer','redo',[b.id])}</div>`; }
+    if(k&&b.fields.includes(k)){ if(granted(b.id).includes(k)) return `${bn} already has “${esc(F(k).label)}”.`;
+      if(S.revoked[b.id]) return `You stopped sharing with ${bn}. Share again first, then I can send it.<div class="v-quick">${hAct('Share again','restart',[b.id])}</div>`;
+      return `${bn} asked for this, so I can share it now: “${esc(youify(F(k).value))}”, for this trip.${S.dec[b.id]?'':' The rest of their request stays open for you to answer.'}<div class="v-quick two">${hAct('Share it now','addreq',[b.id,k])}${hAct('Don’t share','none',[],1)}</div>`; }
     if(k&&volKeys(b.id).includes(k)) return `You already sent ${bn} “${esc(F(k).label)}”.`;
     if(k&&F(k).kind==='bulk') return `That’s ${fmt(F(k).rows)} rows. I won’t send whole histories unasked. Send a single line or a note instead.`;
     if(k) return `${bn} didn’t ask for this, but I can send it: “${esc(F(k).value)}”${SENS(k)?' This is health or personal information, so only send it if it helps.':''}<div class="v-quick two">${hAct('Send for this trip','vol',[b.id,{k}])}${hAct('Don’t send','none',[],1)}</div>`;
@@ -1824,9 +1835,10 @@ function helmiAnswer(raw){ const t=' '+raw.toLowerCase().replace(/[’']/g,"'").
   if(/\b(expire|expires|end|ends|how long|until when)\b/.test(t)){ const on=biz().filter(x=>granted(x.id).length); return on.length?on.map(x=>`${esc(x.name)}: ${esc(lc1(DUR[(S.dec[x.id]||volActive(x.id)[0]||{}).dur||'trip']).replace('she takes','you take'))}`).join('<br>'):'Nobody has access, so nothing needs to end.'; }
   if(/\b(history|log|looked|read|happened)\b/.test(t)) { const L=S.audit.slice(-3).reverse(); return (L.length?'The latest:<br>'+L.map(a=>`${esc(a.t)} · ${esc(a.biz)} ${esc(HPLAIN(a.result)[0])} (${esc(a.item)})`).join('<br>'):'Nothing has happened yet.')+`<div class="v-quick">${hAct('Open sharing history','hist',[],1)}</div>`; }
   if(/\b(where|kept|stored|keep)\b/.test(t)&&k) return `“${esc(F(k).label)}” is kept ${F(k).src==='vault'?'in your access profile, in this app':'at '+esc(srcOf(F(k).src).holder)+'. I fetch it only when you say yes'}.`;
+  { const fm=faqMatch(raw); if(fm&&fm.score>=0.4) return fm.best.a(); }
   if(k){ const w=who(k); return `“${esc(F(k).label)}”: ${esc(F(k).value)}. ${w.length?'Shared with '+w.map(x=>esc(x.name)).join(', ')+'.':'Not shared with anyone.'}`; }
   if(b) return `${bn}: ${S.dec[b.id]?'you shared '+granted(b.id).length+' thing'+(granted(b.id).length===1?'':'s'):'waiting for your answer'}. Ask “what does ${bn} see?” or “stop sharing with ${bn}”.`;
-  return 'Sorry, I didn’t understand that. Try “who can see my allergy?”, “what does the hotel see?”, “tell the hotel I’m arriving late” or “answer my requests for me”.';
+  { const sg=faqSuggest(raw); return `I’m not sure what you mean. Did you want to ask one of these?<div class="chips">${sg.map(q=>`<button class="chip" data-v="askex" data-q="${esc(q[0].toUpperCase()+q.slice(1))}?">${esc(q[0].toUpperCase()+q.slice(1))}?</button>`).join('')}</div>You can also ask about a place, for example “what does ${esc(biz()[1].name)} see?”`; }
 }
 function chatBox(){ const L=S.chat.slice(-6);
   return `<div class="v-card ask"><h3 class="v-h" style="margin:0">Ask Helmi</h3>${L.map(m=>m.me?`<p class="me-msg"><span class="sr">You: </span>${esc(m.t)}</p>`:helmi(m.h)).join('')}
@@ -1842,7 +1854,14 @@ function runAct(i){ const a=(V.acts||[])[i]; if(!a) return; S.ai.acts++; const [
   S.chat.forEach(m=>{ if(m.h&&m.h.includes('data-i="'+i+'"')) m.h=m.h.replace(/<div class="v-quick[\s\S]*?<\/div>/,''); });
   if(a.kind==='none') msg='OK, I won’t do anything.';
   if(a.kind==='stop'){ setRevoked(x,true,'helmi'); msg=`Done. ${bz(x).name} can’t see anything now.`; }
+  if(a.kind==='stopall'){ biz().forEach(b=>{ if(granted(b.id).length) setRevoked(b.id,true,'helmi'); }); msg='Done. Nobody can see anything now.'; }
+  if(a.kind==='restart'){ setRevoked(x,false,'helmi'); msg=`Sharing with ${bz(x).name} again. Ask me again to send it.`; }
+  if(a.kind==='addreq'){ const b=bz(x), d=S.dec[x];
+    if(d){ if(!d.fields.includes(y)) d.fields.push(y); delete S.expired[x]; audit(x,F(y).label,fieldUp(y)?'delivered':'failed: source offline',via(y)); log('helmi share',x+' '+y); }
+    else { sendVol(x,[{k:y}],'trip','helmi'); const ch=S.choice[x]||(S.choice[x]=(()=>{const c={}; applyRules(b,c); return c;})()); ch[y]='share'; }
+    msg=`Shared “${F(y).label}” with ${b.name}.`+(d?'':' Their other questions are still waiting for you.'); }
   if(a.kind==='rule'){ S.rules[x]=y; log('rule',x+'='+y+' via helmi'); msg=`Saved. I’ll ${y==='auto'?'always share':'never share'} “${F(x).label}” when someone asks.`; }
+  if(a.kind==='unshare'){ biz().forEach(b=>{ const d=S.dec[b.id]; if(d&&d.fields.includes(x)){ d.fields=d.fields.filter(z=>z!==x); audit(b.id,F(x).label,'taken back by '+first(),''); } (S.vol[b.id]||[]).forEach(v=>{ if(v.k===x&&!v.ended){ v.ended=true; audit(b.id,F(x).label,'taken back by '+first(),''); } }); }); log('unshare item',x); msg=`Done. Nobody can see “${F(x).label}” now.`; }
   if(a.kind==='vol'){ sendVol(x,[y],'trip','helmi'); msg=`Sent to ${bz(x).name} for this trip. You can take it back from their page.`; }
   if(a.kind==='suggest'){ const b=bz(x), ch=S.choice[x]={}; suggestFor(b).forEach(s=>ch[s.k]=s.on?'share':'deny'); V.sugg=V.sugg||{}; V.sugg[x]=1; S.ai.suggest[x]=1; S.openedAt[x]=Date.now(); vGo({tab:'trip',biz:x,see:null,src:null}); return; }
   if(a.kind==='openreq'){ S.openedAt[x]=Date.now(); if(y){ (S.choice[x]=S.choice[x]||{})[y]='share'; } vGo({tab:'trip',biz:x,see:null,src:null}); return; }
@@ -1881,6 +1900,9 @@ function vChat(b){ const L=msgs(b.id); S.unread[b.id]=0; const q=lastBizQ(b.id),
    <button class="v-btn alt" data-v="chatclose" data-b="${b.id}">Close the chat</button>`}
    <p class="tiny muted">Messages are part of your sharing history. ${esc(b.name)} keeps them only for this booking.</p>`;
 }
+function msgList(){ const th=biz().filter(b=>msgs(b.id).some(m=>m.from!=='helmi')||S.chatOff[b.id]); if(!th.length) return '';
+  return `<h3 class="v-h">Messages</h3><ul class="v-list">${th.map(b=>{ const m=msgs(b.id).filter(x=>x.from!=='helmi').pop(); const n=S.unread[b.id]||0;
+    return `<li><button data-v="fu" data-b="${b.id}"><span><b>${esc(b.name)}</b>${n?` <span class="badge" aria-label="${n} new">${n}</span>`:''}<br><span class="small muted">${S.chatOff[b.id]?'Chat closed':m?(m.from==='me'?'You: ':'')+esc(m.text.slice(0,60)):''}</span></span><span aria-hidden="true">›</span></button></li>`; }).join('')}</ul>`; }
 function chatBtn(b){ const n=S.unread[b.id]||0, L=msgs(b.id).length; return `<button class="v-btn alt" data-v="fu" data-b="${b.id}">Messages with ${esc(b.name)}${n?` <span class="badge" aria-label="${n} new">${n}</span>`:L?` (${msgs(b.id).filter(m=>m.from!=='helmi').length})`:''}</button>`; }
 function bMsg(b){ const L=msgs(b.id).filter(m=>m.from!=='helmi'); const off=S.chatOff[b.id];
   return `<div class="b-panel"><h3>Messages with the customer</h3>
@@ -1888,6 +1910,72 @@ function bMsg(b){ const L=msgs(b.id).filter(m=>m.from!=='helmi'); const off=S.ch
    ${off?'<p class="small"><b>The customer closed this chat.</b> You can’t send messages.</p>':`<p class="label" style="margin:8px 0 4px">Quick messages</p><div class="chips">${BTPL(b.id).map(t=>`<button class="chip" data-act="btpl" data-b="${b.id}" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>
    <form id="bchatform" class="askrow" data-b="${b.id}"><label class="sr" for="bchatin">Message to the customer</label><input id="bchatin" autocomplete="off" maxlength="240" placeholder="Write to the customer"><button type="submit" class="btn sm">Send</button></form>`}
    <p class="tiny muted">The customer’s assistant reads messages too. To get data, ask through a vault request: it can’t be asked for in chat.</p></div>`; }
+
+/* Helmi: wider understanding. Each topic has example questions; a question is matched by meaning-ish word overlap. */
+const HSYN={dont:'not',"don't":'not',never:'not',refuse:'no',decline:'no',deny:'no',reject:'no',skip:'no',withhold:'no',opt:'no',without:'no',
+ secure:'safe',security:'safe',hacked:'safe',hack:'safe',breach:'safe',leak:'safe',stolen:'safe',protect:'safe',protected:'safe',privacy:'safe',private:'safe',
+ erase:'delete',remove:'delete',forget:'delete',wipe:'delete',deleted:'delete',cost:'price',pay:'price',paid:'price',free:'price',money:'price',charge:'price',
+ stored:'store',storage:'store',kept:'store',keep:'store',held:'store',hold:'store',located:'store',live:'store',lives:'store',
+ copy:'copy',copies:'copy',duplicate:'copy',sell:'sell',sold:'sell',pass:'sell',give:'give',hand:'give',
+ business:'place',businesses:'place',company:'place',companies:'place',shop:'place',places:'place',hotel:'place',restaurant:'place',
+ change:'change',undo:'change',revoke:'stop',withdraw:'stop',cancel:'stop',end:'stop',stop:'stop',
+ long:'long',duration:'long',expire:'long',expires:'long',time:'long',days:'long',
+ everything:'all',everyone:'all',anybody:'all',anyone:'all',nobody:'none',
+ part:'some',some:'some',only:'some',partly:'some',few:'some',certain:'some',specific:'some',individual:'some',
+ talk:'message',chat:'message',contact:'message',write:'message',messages:'message',
+ voice:'speak',aloud:'speak',read:'speak',listen:'speak',hear:'speak',blind:'speak',screenreader:'speak',
+ rule:'rule',rules:'rule',automatic:'rule',automatically:'rule',
+ history:'history',log:'history',record:'history',track:'history',
+ ai:'ai',robot:'ai',bot:'ai',smart:'ai',intelligent:'ai',chatgpt:'ai',claude:'ai',model:'ai'};
+const HSTOP=new Set('a an the and or of to for with is are am be been do does did can could would should will i me my mine you your it its this that there they them their what about from on in at by if so just please really also have has had any thing things something stuff data info information'.split(' '));
+function htok(s){ return String(s).toLowerCase().replace(/[’']/g,"'").replace(/[^a-zäöå' ]+/g,' ').split(/\s+/).filter(Boolean).map(w=>{ w=HSYN[w]||w; if(w.length>5&&w.endsWith('ing')) w=w.slice(0,-3); else if(w.length>4&&w.endsWith('ed')) w=w.slice(0,-2); else if(w.length>4&&w.endsWith('s')&&!w.endsWith('ss')) w=w.slice(0,-1); return HSYN[w]||w; }).filter(w=>!HSTOP.has(w)); }
+const HFAQ=[
+ {id:'no',ex:['can i choose not to share something','can i say no','do i have to share everything','what if i refuse','can i decline a request','is sharing optional','can i keep something private','do i have to answer'],
+  a:()=>'Yes. Nothing is shared unless you turn it on. Every item starts switched off, you can say no to a whole request, and saying no never cancels a booking. Each place tells you what happens instead, usually that you arrange it the old way.'},
+ {id:'some',ex:['can i share only some things','can i share part of a request','can i pick which items','share just one thing','choose what to share'],
+  a:()=>'Yes. Every request lists each item with its own switch. Turn on only the ones you want; the place sees only those, and the rest stay locked. You can also tap “Suggest for me” and I’ll pick the smallest set that does the job.'},
+ {id:'change',ex:['can i change my mind','can i take it back later','can i stop sharing later','what if i regret sharing','can i undo'],
+  a:()=>'Yes, any time. Open Sharing and tap “Stop sharing”, or tell me “stop sharing with the hotel”. Access ends straight away and it’s written in your history. You can also change your answer to any request.'},
+ {id:'long',ex:['how long can they see my data','how long do they keep it','when does access end','does access expire','what does this trip only mean'],
+  a:()=>'You choose when you share: this trip only, 30 days, or until you take it back. Trip-only access ends on its own when the trip is over. Ask me “when does access end?” to see each place.'},
+ {id:'safe',ex:['is my data safe','what if someone hacks it','how is my data protected','is this secure','what about privacy'],
+  a:()=>S.arch==='A'?'Your data stays where it already is, at Kanta, Kela, your bank and the rest. I keep only your rules and your access profile, and I don’t keep copies of what I fetch. Businesses only get single lines you approved, and every read is logged.':'Everything is on one server you own. It’s simpler, but if that server is broken into, all of it is at risk at once. Businesses still only get the lines you approve.'},
+ {id:'store',ex:['where is my data stored','where is my data kept','who holds my data','where does my information live'],
+  a:()=>`Your data stays at the places that already hold it: ${P().sources.filter(s=>s.id!=='vault').map(s=>s.holder).slice(0,5).join(', ')} and others. Your needs, written once, are in this app. Open “My data” to see each source.`},
+ {id:'copy',ex:['do you keep a copy','does helmi store my data','do you save what you fetch'],
+  a:()=>S.arch==='A'?'No. I fetch an item live when you say yes, hand it over, and keep no copy.':'In this setup your data is copied to your own server every night. I pass on only what you say yes to.'},
+ {id:'sell',ex:['can businesses sell my data','can they pass it on','can they give it to others','will the hotel share with the restaurant','can sister companies see it'],
+  a:()=>{ const own=biz().find(x=>x.owner); return 'No. Each place sees only what you approved for it, and it can’t pass it on through me.'+(own?` Even ${own.name}, which has the same owner as ${bz(own.owner).name}, can’t see what you gave the hotel.`:''); }},
+ {id:'delete',ex:['can i delete my data','how do i erase everything','remove my data','forget everything about me'],
+  a:()=>'The places that hold your data keep their own records, and you can ask each of them to delete it. What I can do is stop all sharing at once, so no business can see anything. Say “stop sharing with everyone”.'},
+ {id:'price',ex:['does this cost anything','is it free','do i have to pay','who pays for this'],
+  a:()=>'It’s free for you. In the business model, businesses pay a small fee per verified check, because it saves them phone calls and forms.'},
+ {id:'ai',ex:['are you an ai','are you smart','are you a real person','how do you understand me','are you chatgpt'],
+  a:()=>'I’m Helmi, an assistant that works for you, not for the businesses. In this prototype my understanding is built into the page and works from your actual data, but it’s limited, so I may miss some phrasings. A real version would use a language model working only for you.'},
+ {id:'how',ex:['how does this work','what is the vault','what is this app','explain how it works','what can i do here'],
+  a:()=>'You tell me your needs once. When a place asks for something, I show you who is asking, what for and why. You choose item by item, and for how long. You can see exactly what each place sees, send things they didn’t ask for, and take it back any time.'},
+ {id:'send',ex:['can i send something they did not ask for','can i tell them something extra','how do i add information','can i give more details'],
+  a:()=>'Yes. Open the place in your trip and tap “Send … something they didn’t ask for”, or just tell me, for example “send my diet to the hotel” or “tell the bistro I’ll be late”.'},
+ {id:'message',ex:['can i talk to the hotel','how do i message a business','can i chat with them','can they contact me'],
+  a:()=>'Each place has Messages on its page in your trip. I read along: if a place asks for something you’ve stored, I offer to share it properly, and I warn you about things like ID numbers. You can close a chat any time.'},
+ {id:'rule',ex:['can i always share something automatically','how do rules work','can you remember my answers','set a rule'],
+  a:()=>'Yes. In About me, set any line to “Always share”, “Never share” or “Ask me”. I’ll fill those in next time someone asks. You can also tell me “always share my diet”.'},
+ {id:'history',ex:['who has looked at my data','can i see a history','what has been read','show me the log'],
+  a:()=>'Open Sharing and tap “Sharing history”. It lists every share, read, blocked attempt, message and ended access, newest first. Businesses see the same log.'},
+ {id:'speak',ex:['can you read it to me','can you read aloud','i cannot see the screen','how do i turn on voice'],
+  a:()=>'Yes. Tap 🔊 at the top and I’ll read every screen aloud, including each request and whether each switch is on. Tap it again to stop.'},
+ {id:'setup',ex:['what is setup a and b','what is the difference between the setups','own data server'],
+  a:()=>'Setup A: your data stays where it is, and I fetch single items live. Setup B: everything is copied to one server you own. A spreads the risk; B is simpler but puts everything in one place.'},
+ {id:'network',ex:['what is the network check','what does nokia do','why the mobile network'],
+  a:()=>'Some places only need a yes or a no, like “are you at the station?”. I can ask the mobile network through Nokia Network as Code. They get the answer, never your location or your ID.'},
+ {id:'shared',ex:['what have i shared','what did i share','show what i shared','summary of my sharing'],
+  a:()=>{ const on=biz().filter(x=>granted(x.id).length||volActive(x.id).length); return on.length?on.map(x=>`${x.name}: ${granted(x.id).map(k=>lcl(lab1(k))).join(', ')}${volActive(x.id).some(v=>v.note)?', and a note':''}`).join('<br>'):'Nothing yet. Nobody can see your data.'; }},
+ {id:'thanks',ex:['thank you','thanks','great','ok','okay'],a:()=>'You’re welcome. Ask me anything about your sharing.'},
+];
+function faqMatch(q){ const Q=new Set(htok(q)); if(!Q.size) return null; let best=null,bs=0,second=null;
+  HFAQ.forEach(f=>{ let m=0; f.ex.forEach(e=>{ const E=new Set(htok(e)); let n=0; Q.forEach(w=>{ if(E.has(w)) n++; }); const sc=n/Math.sqrt(Q.size*E.size||1); if(sc>m) m=sc; }); if(m>bs){ second=best; bs=m; best=f; } });
+  return {best,score:bs}; }
+function faqSuggest(q){ const Q=new Set(htok(q)); const sc=HFAQ.filter(f=>f.id!=='thanks').map(f=>{ let m=0; f.ex.forEach(e=>{ const E=new Set(htok(e)); let n=0; Q.forEach(w=>{ if(E.has(w)) n++; }); m=Math.max(m,n/Math.sqrt(Q.size*E.size||1)); }); return [m,f]; }).sort((a,b)=>b[0]-a[0]).slice(0,3); return sc.map(x=>x[1].ex[0]); }
 
 /* ================================================================== business app */
 let BA={open:false,biz:'hotel',tab:'book',ret:null};
