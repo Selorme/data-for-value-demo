@@ -320,6 +320,9 @@ body.net-present #network .net-l{padding:16px 20px} body.net-present #network .n
 .askrow{display:flex;gap:6px;align-items:center}
 .askrow input{flex:1;min-width:0;min-height:48px;border:1.5px solid var(--ink);border-radius:12px;padding:0 12px;font-size:1rem;background:#fff}
 .askrow .v-ib.txt,.askrow .btn{min-height:48px}
+.hlog-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.hlog-top .v-h{flex:1}
+.hlog{display:grid;gap:10px;max-height:min(55vh,460px);overflow-y:auto;overscroll-behavior:contain;padding:4px 4px 4px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding-block:10px;scroll-behavior:auto}
+.hlog>*{min-width:0}
 .me-msg{justify-self:end;background:var(--ink);color:#fff;border-radius:16px 4px 16px 16px;padding:8px 12px;max-width:85%;margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--hair);background:#fff;border-radius:99px;padding:6px 12px;font-size:.875rem;cursor:pointer;min-height:36px;color:var(--ink);text-align:left}
@@ -1281,7 +1284,9 @@ function renderVault(keepFocus){
     ${canSpeak?`<button class="v-ib" data-v="readtoggle" aria-pressed="${READ}" aria-label="Read screens aloud" title="Read screens aloud" style="${READ?'background:var(--ink);color:#fff;':''}border-radius:50%">🔊</button>`:''}
     ${pm?(STUDY?'':`<button class="v-ib txt" data-act="pmode-off">Researcher</button>`):`<button class="v-ib" data-v="close" aria-label="Close the vault app"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`}`;
   if(S.task){ const r=taskCheck(); if(r==='end'){ V.tab='finish'; V.biz=null; V.src=null; V.see=null; body=vFinish(); } }
+  const ohl=$('hlog'), hst=ohl?{top:ohl.scrollTop,bot:ohl.scrollHeight-ohl.scrollTop-ohl.clientHeight<24,n:V.hlogN}:null;
   $('v-screen').innerHTML=(S.task?taskBanner():'')+body;
+  { const hl=$('hlog'); if(hl){ if(hst&&!hst.bot&&hst.n===S.chat.length) hl.scrollTop=hst.top; else hl.scrollTop=hl.scrollHeight; } V.hlogN=S.chat.length; }
   const np=pending().length;
   $('v-nav').hidden=V.tab==='start'||V.tab==='meet';
   $('v-nav').innerHTML=VTABS.map(([k,l])=>`<button data-v="tab" data-t="${k}" ${V.tab===k?'aria-current="page"':''}>${VIC[k]}<span>${l}${k==='home'&&np?` <span class="badge" aria-label="${np} new requests">${np}</span>`:''}</span></button>`).join('');
@@ -1343,6 +1348,7 @@ document.addEventListener('click',e=>{
   if(a==='suggest'){ const b=bz(bid), ch=S.choice[bid]={}; suggestFor(b).forEach(x=>ch[x.k]=x.on?'share':'deny'); V.sugg[bid]=1; S.ai.suggest[bid]=1; log('helmi suggest',bid); renderVault(); say('Helmi suggested an answer. Check the switches, then send.'); return; }
   if(a==='hact'){ runAct(+v.dataset.i); return; }
   if(a==='askex'){ askHelmi(v.dataset.q); return; }
+  if(a==='hclear'){ S.chat=[]; V.acts=[]; renderVault(); const i=$('vask'); if(i) i.focus({preventScroll:true}); say('Chat cleared.'); log('helmi chat','cleared'); return; }
   if(a==='mic'){ if(!SR) return; if(window.__rec){ try{ window.__rec.stop(); }catch(_){} return; }
     try{ if(canSpeak) speechSynthesis.cancel(); window.__listening=true; const r=new SR(); window.__rec=r; r.lang='en-GB'; r.interimResults=false; r.continuous=false; r.maxAlternatives=1; let got=false;
       v.textContent='●'; v.setAttribute('aria-label','Listening. Tap to stop'); say('Listening');
@@ -1867,15 +1873,15 @@ function helmiAnswer(raw){ const t=' '+raw.toLowerCase().replace(/[’']/g,"'").
   if(b) return `${bn}: ${S.dec[b.id]?'you shared '+granted(b.id).length+' thing'+(granted(b.id).length===1?'':'s'):'waiting for your answer'}. Ask “what does ${bn} see?” or “stop sharing with ${bn}”.`;
   { const sg=faqSuggest(raw); return `I’m not sure what you mean. Did you want to ask one of these?<div class="chips">${sg.map(q=>`<button class="chip" data-v="askex" data-q="${esc(q[0].toUpperCase()+q.slice(1))}?">${esc(q[0].toUpperCase()+q.slice(1))}?</button>`).join('')}</div>You can also ask about a place, for example “what does ${esc(biz()[1].name)} see?”`; }
 }
-function chatBox(){ const L=S.chat.slice(-6);
-  return `<div class="v-card ask"><h3 class="v-h" style="margin:0">Ask Helmi</h3>${L.map(m=>m.me?`<p class="me-msg"><span class="sr">You: </span>${esc(m.t)}</p>`:helmi(m.h)).join('')}
+function chatBox(){ const L=S.chat; const nq=L.filter(m=>m.me).length;
+  return `<div class="v-card ask"><div class="hlog-top"><h3 class="v-h" style="margin:0">Ask Helmi</h3>${L.length?`<span class="tiny muted">${nq} question${nq===1?'':'s'}</span><button class="v-link" data-v="hclear">Clear chat</button>`:''}</div>${L.length?`<div class="hlog" id="hlog" role="log" aria-label="Your conversation with Helmi" tabindex="0">${L.map(m=>m.me?`<p class="me-msg"><span class="sr">You: </span>${esc(m.t)}</p>`:helmi(m.h)).join('')}</div>`:''}
    <form id="askform" class="askrow"><label class="sr" for="vask">Ask Helmi</label><input id="vask" autocomplete="off" placeholder="Ask or tell me something" maxlength="200">${SR?`<button type="button" class="v-ib" data-v="mic" aria-label="Speak to Helmi" title="Speak">🎤</button>`:''}<button type="submit" class="v-ib txt" aria-label="Send">Send</button></form>
    ${L.length?'':`<div class="chips">${['Who can see my data?','What does '+biz()[1].name+' see?','Answer my requests for me'].map(q=>`<button class="chip" data-v="askex" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>`}
    <p class="tiny muted">I understand plain requests and always ask before acting. In this prototype I run inside the page, so nothing you type leaves it.</p></div>`;
 }
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 function askHelmi(q){ q=String(q||'').trim().slice(0,200); if(!q) return; const now=Date.now(); if(window.__lastAsk&&window.__lastAsk.q===q.toLowerCase()&&now-window.__lastAsk.t<4000) return; window.__lastAsk={q:q.toLowerCase(),t:now}; V.acts=V.acts||[]; S.chat.push({me:1,t:q}); const h=helmiAnswer(q); S.chat.push({h}); S.ai.asks++; log('ask helmi',q.slice(0,80));
-  renderVault(); const box=document.querySelector('#v-screen .ask'); if(box) box.scrollIntoView({block:'end'}); const inp=$('vask'); if(inp) inp.focus({preventScroll:true});
+  renderVault(); const box=document.querySelector('#v-screen .askrow'); if(box) box.scrollIntoView({block:'nearest'}); const inp=$('vask'); if(inp) inp.focus({preventScroll:true});
   say('Helmi: '+h.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,300)); if(READ) speak(h.replace(/<div class="v-quick[\s\S]*$/,'').replace(/<[^>]+>/g,' ')); }
 function runAct(i){ const a=(V.acts||[])[i]; if(!a) return; S.ai.acts++; const [x,y]=a.args||[]; let msg='';
   S.chat.forEach(m=>{ if(m.h&&m.h.includes('data-i="'+i+'"')) m.h=m.h.replace(/<div class="v-quick[\s\S]*?<\/div>/,''); });
