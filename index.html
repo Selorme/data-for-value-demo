@@ -1427,7 +1427,7 @@ const HP=new URLSearchParams((location.hash||'').replace(/^#vault&?/,'').replace
 const STUDY=(location.hash||'').startsWith('#vault');
 const FORM_TEMPLATE=''; /* optional: paste a Microsoft Forms pre-filled link here, with CODE and ANSWERS as the pre-filled values */
 const formTpl=()=>HP.get('form')||FORM_TEMPLATE;
-const randCode=()=>'P-'+String(Math.floor(1000+Math.random()*9000));
+const randCode=()=>{ let n; try{ n=crypto.getRandomValues(new Uint32Array(1))[0]%9000000; }catch(e){ n=Math.floor(Math.random()*9000000); } return 'W-'+String(1000000+n); };
 const PERSONAS=['aino','elina','sanna','laura'];
 const GROUPS=PERSONAS.flatMap(p=>[[p,false],[p,true]]);
 const FIXED=HP.has('persona');
