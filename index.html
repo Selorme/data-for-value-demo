@@ -357,6 +357,31 @@ body.net-present #network .net-l{padding:16px 20px} body.net-present #network .n
 .vnode:focus{outline:none}
 .vnode:focus-visible rect,.vnode:focus-visible circle{stroke:var(--accent);stroke-width:4}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+body.studio{background:var(--ground)}
+body.studio .vault-back{inset:0 auto 0 0;width:470px;padding:14px 10px 14px 18px;background:var(--ground)}
+body.studio [data-act="pmode-off"],body.studio [data-v="close"]{display:none}
+#studio{display:none}
+body.studio #studio{display:grid;position:fixed;left:470px;right:0;top:0;bottom:0;z-index:31;padding:18px 28px 14px 14px;grid-template-rows:auto minmax(0,1fr) auto;gap:10px;color:var(--ink);overflow:hidden}
+.stu-head{display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.stu-head h2{margin:2px 0 2px;font-size:1.6rem;letter-spacing:-.01em}
+.stu-ctl{display:grid;gap:8px;justify-items:end}
+.stu-ctl .seg{display:flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden}
+.stu-ctl .seg button{border:0;background:#fff;padding:8px 12px;font-weight:600;cursor:pointer;font:inherit;font-size:.875rem}
+.stu-ctl .seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.stu-ctl select{margin-left:6px;min-height:36px;border:1.5px solid var(--ink);border-radius:8px;padding:0 8px;font:inherit;font-size:.875rem}
+.stu-map{position:relative;background:#fff;border:1px solid var(--hair);border-radius:14px;padding:8px;min-height:0;display:grid}
+.lmap{width:100%;height:100%;font-family:inherit}
+.lmap .flow{stroke-dasharray:10 7;animation:lmflow 1s linear infinite}
+@keyframes lmflow{to{stroke-dashoffset:-17}}
+@media (prefers-reduced-motion:reduce){.lmap .flow{animation:none}}
+.stu-br{position:absolute;left:29%;bottom:30px;width:330px;background:#fff;border:2.5px solid var(--bad);border-radius:12px;padding:12px 14px;display:grid;gap:6px;font-size:.875rem;box-shadow:0 8px 28px rgba(0,0,0,.12)}
+.stu-br .n{font-size:1.35rem;font-weight:800;color:var(--bad)}
+.stu-br .meter{height:8px;background:var(--faint);border-radius:4px;overflow:hidden}.stu-br .meter i{display:block;height:100%;background:var(--bad)}
+.stu-log{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.875rem;max-height:142px;overflow:hidden}
+.stu-log li{background:#fff;border:1px solid var(--hair);border-left:4px solid var(--hair);border-radius:6px;padding:5px 10px}
+.stu-log li.ok{border-left-color:var(--good)} .stu-log li.bad{border-left-color:var(--bad);background:var(--badbg)} .stu-log li.snt{border-left-color:var(--accent)}
+.stu-log time{font-variant-numeric:tabular-nums;color:var(--quiet)}
 </style>
 </head>
 <body>
@@ -388,7 +413,7 @@ body.net-present #network .net-l{padding:16px 20px} body.net-present #network .n
           <label><input type="radio" name="arch" value="B"><span>B · Own data server</span></label>
         </div>
       </div>
-      <div class="ctlgroup"><button class="btn sm" data-vopen="home">Open vault app</button><button class="btn alt sm" data-act="pmode">Participant mode</button><button class="btn sm" data-bopen="">Open business app</button><button class="btn alt sm" data-act="bmode">Business mode</button></div>
+      <div class="ctlgroup"><button class="btn sm" data-vopen="home">Open vault app</button><button class="btn alt sm" data-act="pmode">Participant mode</button><button class="btn alt sm" data-act="studio">Presenter view</button><button class="btn sm" data-bopen="">Open business app</button><button class="btn alt sm" data-act="bmode">Business mode</button></div>
       <details class="disp">
         <summary>Display</summary>
         <div class="disp-body">
@@ -419,7 +444,7 @@ body.net-present #network .net-l{padding:16px 20px} body.net-present #network .n
 </footer>
 
 <div id="bapp" class="vault-back" hidden><div class="tablet" role="dialog" aria-modal="true" aria-labelledby="b-title"><div id="b-top"></div><nav id="b-nav" aria-label="Business app"></nav><div id="b-screen"></div></div></div>
-<div id="vault" class="vault-back" hidden><div class="phone" role="dialog" aria-modal="true" aria-labelledby="v-title"><div id="v-top"></div><div id="v-screen"></div><nav id="v-nav" aria-label="Vault app"></nav></div></div>
+<div id="studio" aria-label="Presenter view"></div><div id="vault" class="vault-back" hidden><div class="phone" role="dialog" aria-modal="true" aria-labelledby="v-title"><div id="v-top"></div><div id="v-screen"></div><nav id="v-nav" aria-label="Vault app"></nav></div></div>
 
 <script>
 (function(){
@@ -1312,7 +1337,7 @@ document.addEventListener('click',e=>{
   const v=e.target.closest('[data-v]'); if(!v) return; const a=v.dataset.v, bid=v.dataset.b;
   if(a==='close'){ closeVault(); return; }
   if(a==='readh'){ const bb=v.closest('.bubble'); speak(bb?bb.innerText.replace(/^🔊\s*/,'').replace(/^Helmi:\s*/,''):''); return; }
-  if(a==='readtoggle'){ READ=!READ; try{ localStorage.setItem('tos-read',READ?'1':'0'); }catch(e){} if(!READ&&canSpeak) speechSynthesis.cancel(); renderVault(true); if(READ) speak('Read aloud is on. Helmi will read each screen to you.'); log('read aloud',READ?'on':'off'); return; }
+  if(a==='readtoggle'){ READ=!READ; try{ localStorage.setItem('tos-read',READ?'1':'0'); }catch(e){} if(!READ&&canSpeak) speechSynthesis.cancel(); renderVault(true); if(READ){ const h=$('v-title'); speak('Read aloud is on. '+(h?h.innerText+'. ':'')+screenText()); } log('read aloud',READ?'on':'off'); return; }
   if(a==='begin'){ const c=(($('vcode').value||'').trim()||randCode()).slice(0,24); let per=S.persona, adv=S.advice, how='link';
     if(!FIXED){ const g=GROUPS[groupOf(c)]; per=g[0]; adv=HP.has('advice')?HP.get('advice')==='on':g[1]; how='code'; }
     S=fresh(per,S.arch,c); S.advice=adv; S.assign=how; log('study start',S.pid+' '+S.persona+' advice '+(adv?'on':'off')+' ('+how+')'); vGo({tab:'meet'}); return; }
@@ -2107,6 +2132,83 @@ function helmiData(raw,t,b,k){
   if(/\b(will there be|is there|are there|do they have|will they have)\b/.test(t)) return `I don’t see anything about that in your trip. You can ask ${b?esc(b.name):'the place'} in Messages.${b?`<div class="v-quick">${hAct('Message '+b.name,'chat',[b.id],1)}</div>`:''}`;
   return null; }
 
+/* ===== presenter view: vault phone + live connection map ===== */
+const STU={on:false,key:'',prev:{},fx:[]};
+function stuState(){ return JSON.stringify([S.persona,S.arch,S.breach,S.dec,S.revoked,S.expired,S.vol,S.audit.length,S.after]); }
+function stuLinks(b){ const d=S.dec[b.id], vol=(S.vol[b.id]||[]).filter(x=>!x.ended), g=granted(b.id), ask=b.fields.length;
+  if(S.revoked[b.id]||S.expired[b.id]) return {st:'ended',lab:S.expired[b.id]?'trip over · access ended':'access taken back',g};
+  if(!d&&!vol.length) return {st:'asks',lab:`asks for ${ask} thing${ask===1?'':'s'}`,g};
+  const sh=d?d.fields.length:0, no=d?ask-sh:0, parts=[];
+  if(d) parts.push(sh?`${sh} shared`:'');
+  if(no) parts.push(`${no} declined`);
+  if(vol.length) parts.push(`${vol.length} sent by ${first()}`);
+  if(!g.length&&!vol.length) return {st:'no',lab:'declined everything',g};
+  return {st:'on',lab:parts.filter(Boolean).join(' · '),g};
+}
+function liveMap(){
+  const W=1000,H=600, src=P().sources.filter(x=>x.id!=='vault'), bs=biz(), B=S.arch==='B';
+  const sy=i=>50+i*(500/Math.max(1,src.length-1)), by=i=>70+i*115;
+  const SX=118, HX=B?560:500, HY=300, SVX=318, BX=850;
+  const used={}; bs.forEach(b=>granted(b.id).forEach(k=>{ const s=F(k).src; (used[s]=used[s]||new Set()).add(b.name); }));
+  const br=S.breach;
+  let s=`<svg viewBox="0 0 ${W} ${H}" class="lmap" role="img" aria-label="Live map of who can reach ${esc(first())}'s data"><defs><marker id="lmA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8a8578"/></marker></defs>`;
+  // sources -> hub (A) or -> own server (B)
+  src.forEach((x,i)=>{ const y=sy(i), u=used[x.id];
+    if(B) s+=`<line x1="${SX+82}" y1="${y}" x2="${SVX-70}" y2="${HY+(y-HY)*.25}" stroke="${br==='own'?'var(--bad)':'#b9b4a7'}" stroke-width="1.6" marker-end="url(#lmA)"/>`;
+    else s+=`<path d="M${SX+82} ${y} C ${SX+200} ${y}, ${HX-160} ${HY}, ${HX-64} ${HY}" fill="none" stroke="${u?'var(--accent)':'#b9b4a7'}" stroke-width="${u?3:1.6}" ${u?'class="flow"':'stroke-dasharray="5 6"'}/>`; });
+  if(B) s+=`<line x1="${SVX+70}" y1="${HY}" x2="${HX-64}" y2="${HY}" stroke="${br==='own'?'var(--bad)':'var(--ink)'}" stroke-width="3" marker-end="url(#lmA)"/>`;
+  // hub -> businesses
+  bs.forEach((b,i)=>{ const y=by(i), L=stuLinks(b), c={on:'var(--accent)',no:'var(--bad)',asks:'#a9a497',ended:'#a9a497'}[L.st];
+    const d=`M${HX+64} ${HY} C ${HX+170} ${HY}, ${BX-190} ${y}, ${BX-92} ${y}`;
+    s+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="${L.st==='on'?3.4:2}" ${L.st==='on'?'class="flow"':L.st==='no'?'stroke-dasharray="8 6"':'stroke-dasharray="2 6"'}/>`;
+    const mx=(HX+64+BX-92)/2, my=(HY+y)/2;
+    if(L.st==='no') s+=`<g transform="translate(${mx},${my})"><circle r="13" fill="var(--bad)"/><path d="M-5 -5L5 5M5 -5L-5 5" stroke="#fff" stroke-width="2.6"/></g>`;
+    if(STU.fx.includes(b.id)) s+=`<circle r="7" fill="var(--accent)"><animateMotion dur="1.1s" repeatCount="3" path="${d}"/></circle>`;
+    s+=`<text x="${BX-100}" y="${y+(y<HY?-12:y>HY?20:-12)}" text-anchor="end" font-size="13" font-weight="600" fill="${c}">${esc(L.lab)}</text>`; });
+  // sister link
+  const hi=bs.findIndex(b=>b.id==='hotel'), bi=bs.findIndex(b=>b.owner==='hotel');
+  if(hi>=0&&bi>=0){ const y1=by(hi), y2=by(bi), x=BX+96; s+=`<path d="M${x} ${y1} H ${x+22} V ${y2} H ${x}" fill="none" stroke="var(--bad)" stroke-width="2"/><g transform="translate(${x+22},${(y1+y2)/2})"><circle r="12" fill="#fff" stroke="var(--bad)" stroke-width="2"/><path d="M-4.5 -4.5L4.5 4.5M4.5 -4.5L-4.5 4.5" stroke="var(--bad)" stroke-width="2.4"/></g><text x="${x+40}" y="${(y1+y2)/2-6}" font-size="11.5" font-weight="700" fill="var(--bad)" transform="rotate(90 ${x+40} ${(y1+y2)/2-6})" text-anchor="middle">same owner · no sharing</text>`; }
+  // source nodes
+  src.forEach((x,i)=>{ const y=sy(i), u=used[x.id], hit=br===x.id;
+    s+=`<g transform="translate(${SX},${y})"><rect x="-82" y="-22" width="164" height="44" rx="8" fill="${hit?'var(--badbg)':u?'#fdf0e8':'#fff'}" stroke="${hit?'var(--bad)':u?'var(--accent)':'var(--ink)'}" stroke-width="${hit||u?2.6:1.2}"/><text text-anchor="middle" y="-3" font-size="13.5" font-weight="700">${esc(x.holder.length>20?x.holder.split(' ').slice(0,2).join(' '):x.holder)}</text><text text-anchor="middle" y="14" font-size="11.5" fill="var(--quiet)">${fmt(x.rows)} rows${u?' · in use':''}</text>${hit?`<text x="88" y="5" font-size="12" font-weight="800" fill="var(--bad)">BREACHED</text>`:''}</g>`; });
+  // own server (B)
+  if(B){ const hit=br==='own'; s+=`<g transform="translate(${SVX},${HY})"><rect x="-70" y="-62" width="140" height="124" rx="10" fill="${hit?'var(--badbg)':'#f2efe6'}" stroke="${hit?'var(--bad)':'var(--ink)'}" stroke-width="${hit?3:1.6}"/><text text-anchor="middle" y="-30" font-size="13.5" font-weight="700">${esc(first())}'s server</text><text text-anchor="middle" y="-10" font-size="11.5" fill="var(--quiet)">copies of everything</text><text text-anchor="middle" y="18" font-size="20" font-weight="800">${fmt(P().stats.total)}</text><text text-anchor="middle" y="36" font-size="11.5" fill="var(--quiet)">rows in one place</text>${hit?`<text text-anchor="middle" y="82" font-size="12.5" font-weight="800" fill="var(--bad)">BREACHED</text>`:''}</g>`; }
+  // hub
+  { const hit=br==='vault'; s+=`<g transform="translate(${HX},${HY})"><circle r="64" fill="${hit?'var(--badbg)':'var(--ink)'}" stroke="${hit?'var(--bad)':'none'}" stroke-width="3"/><text text-anchor="middle" y="-14" font-size="14.5" font-weight="700" fill="${hit?'var(--ink)':'#fff'}">${esc(first())}'s vault</text><text text-anchor="middle" y="5" font-size="12.5" fill="${hit?'var(--ink)':'#ddd'}">Helmi</text><text text-anchor="middle" y="24" font-size="11" fill="${hit?'var(--ink)':'#bbb'}">${B?'only approved items':'profile + rules only'}</text>${hit?`<text text-anchor="middle" y="84" font-size="12.5" font-weight="800" fill="var(--bad)">BREACHED</text>`:''}</g>`; }
+  // businesses
+  bs.forEach((b,i)=>{ const y=by(i), L=stuLinks(b), on=L.st==='on';
+    s+=`<g transform="translate(${BX},${y})"><rect x="-92" y="-26" width="184" height="52" rx="26" fill="${on?'var(--accent)':L.st==='no'?'var(--badbg)':'#fff'}" stroke="${on?'var(--accent)':L.st==='no'?'var(--bad)':'var(--ink)'}" stroke-width="1.4"/><text text-anchor="middle" y="-2" font-size="13.5" font-weight="700" fill="${on?'#fff':'var(--ink)'}">${esc(b.name)}</text><text text-anchor="middle" y="15" font-size="11" fill="${on?'#ffe9dc':'var(--quiet)'}">${on?L.g.length+' item'+(L.g.length===1?'':'s')+' visible':esc(b.type.split(',')[0])}</text></g>`; });
+  s+=`<text x="${SX-82}" y="${H-4}" font-size="11.5" fill="var(--quiet)">${B?'Setup B: every night, copies of all sources go to one server she owns.':'Setup A: dashed = Helmi has permission only, no copy. Orange = fetched live for a business she said yes to.'}</text></svg>`;
+  return s;
+}
+function stuBreach(){ const id=S.breach; if(!id) return '';
+  const tot=P().stats.total; let rows,where,dots;
+  if(id==='own'){ rows=tot; where=first()+"'s own server"; dots='Yes. Everything is already linked in one place: health, location, bank, purchases. Everything is gone at once.'; }
+  else if(id==='vault'){ rows=srcOf('vault').rows; where='the vault app'; dots='No. The vault knows where data is and who may read it, not what it says.'; }
+  else { const s=srcOf(id); rows=s.rows; where=s.holder; dots=S.arch==='B'?'Not from here, but her server holds a linked copy of all of it: one more target.':'No. Nothing else is stored with it. Each institution guards its own part.'; }
+  const pct=Math.round(rows/tot*100);
+  return `<div class="stu-br" role="status"><b>Break-in at ${esc(where)}</b><span class="n">${fmt(rows)} of ${fmt(tot)} rows (${pct}%)</span><div class="meter" aria-hidden="true"><i style="width:${Math.max(pct,1)}%"></i></div><span><b>Can the attacker connect the dots?</b> ${esc(dots)}</span></div>`;
+}
+function stuLog(){ const L=S.audit.slice(-5).reverse(); if(!L.length) return `<li class="muted">Nothing shared yet. Every share, read and blocked attempt appears here.</li>`;
+  return L.map(a=>{ const [w,c]=HPLAIN(a.result); return `<li class="${c||(/sent by/.test(a.result)?'snt':'')}"><time>${esc(a.t.slice(0,5))}</time> <b>${esc(a.biz)}</b> ${esc(a.result.startsWith('message from '+first())?'got her reply:':/^message from/.test(a.result)?'wrote:':/sent by/.test(a.result)?'was sent':/taken back/.test(a.result)?'lost access to':w)} <span>${esc(a.item.replace(/^Message: /,''))}</span></li>`; }).join(''); }
+function renderStudio(force){ if(!STU.on) return; const k=stuState(); if(!force&&k===STU.key) return; STU.key=k;
+  const now={}; biz().forEach(b=>now[b.id]=granted(b.id).length); STU.fx=biz().filter(b=>now[b.id]>(STU.prev[b.id]||0)).map(b=>b.id); STU.prev=now;
+  const src=P().sources, tot=P().stats.total, all=PERSONAS.reduce((n,p)=>n+DATA[p].stats.total,0);
+  const opts=[['','No break-in'],...(S.arch==='B'?[['own',first()+"'s server"]]:[]),['vault','The vault app'],...src.filter(x=>x.id!=='vault').map(x=>[x.id,x.holder])];
+  $('studio').innerHTML=`<div class="stu-head"><div><p class="label">Live map · synthetic data</p><h2>Who can reach ${esc(first())}'s data right now</h2><p class="small muted">${fmt(tot)} invented rows about ${esc(first())} across ${src.length} places · ${fmt(all)} rows across all four personas</p></div>
+   <div class="stu-ctl"><div class="seg" role="group" aria-label="Where the data lives"><button data-stu="A" aria-pressed="${S.arch==='A'}">A · Data stays put</button><button data-stu="B" aria-pressed="${S.arch==='B'}">B · One own server</button></div>
+   <div class="row" style="gap:10px;align-items:center"><button class="v-link" data-act="studio-off">Exit presenter view</button><label class="small">Simulate a break-in <select id="stu-br">${opts.map(([v,l])=>`<option value="${v}" ${S.breach===v?'selected':''}>${esc(l)}</option>`).join('')}</select></label></div></div></div>
+   <div class="stu-map">${liveMap()}${stuBreach()}</div>
+   <ul class="stu-log" aria-live="polite">${stuLog()}</ul>`;
+}
+function setStudio(on){ STU.on=on; document.body.classList.toggle('studio',on); document.body.classList.toggle('vault-only',on);
+  if(on){ if(!V.open){ V.open=true; vGo({tab:'home',biz:null,src:null}); } STU.key=''; renderStudio(true); if(!STU.t) STU.t=setInterval(()=>renderStudio(),300); }
+  else { clearInterval(STU.t); STU.t=null; renderVault(); } log('presenter view',on?'on':'off'); }
+document.addEventListener('click',e=>{ const a=e.target.closest('[data-stu]'); if(a&&STU.on){ S.arch=a.dataset.stu; S.breach=''; S.down=''; V.fetched={}; log('setup',S.arch); renderAll(); renderStudio(true); return; }
+  const o=e.target.closest('[data-act="studio"],[data-act="studio-off"]'); if(o) setStudio(o.dataset.act==='studio'); });
+document.addEventListener('change',e=>{ if(e.target.id==='stu-br'){ S.breach=e.target.value; log('breach',S.breach); renderLive(); renderStudio(true); } });
+window.__stu={studio:on=>setStudio(on), bizSend:(b,t)=>{ bizSend(b,t,'business app'); renderLive(); }, probe:(b,k)=>{ probe(b,k); renderLive(); }, fields:()=>Object.keys(P().fields), screenText:()=>screenText()};
+
 /* ================================================================== business app */
 let BA={open:false,biz:'hotel',tab:'book',ret:null};
 const bizOnly=()=>document.body.classList.contains('biz-only');
@@ -2166,6 +2268,7 @@ if(STUDY){ const pick=(v,opts)=>opts.includes(v)?v:opts[Math.floor(Math.random()
   S=fresh(per,ar); S.advice=HP.has('advice')?HP.get('advice')==='on':Math.random()<.5; S.pid=HP.get('code')||''; renderAll();
   document.body.classList.add('vault-only'); V.open=true; vGo({tab:'start'}); log('study open',per+' '+ar);
 } else if(location.hash==='#vault') setPmode(true);
+if(location.hash.startsWith('#studio')){ const per=HP.get('persona'); if(PERSONAS.includes(per)){ S=fresh(per,HP.get('setup')==='B'?'B':'A'); renderAll(); } setStudio(true); }
 if(location.hash==='#business') setBmode(true);
 })();
 </script>
