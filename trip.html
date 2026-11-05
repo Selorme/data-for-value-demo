@@ -447,6 +447,32 @@ body.group-only #grp{display:grid;gap:18px;padding:24px 28px;max-width:1500px;ma
 .g-talk{background:var(--panel);border-radius:14px;padding:14px 18px}
 .g-talk ul{margin:6px 0 0;padding-left:20px;display:grid;gap:6px;font-size:1.125rem}
 .g-empty{background:var(--panel);border-radius:14px;padding:30px;text-align:center;font-size:1.125rem}
+.tp-prog{height:6px;border-radius:3px;background:var(--faint);overflow:hidden}
+.tp-prog i{display:block;height:100%;background:var(--ink);transition:width .4s}
+.tp-scene{font-size:1.0625rem;font-weight:600;margin:0}
+.tp-opts{display:grid;gap:8px}
+.tp-opt{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;cursor:pointer;border:1.5px solid var(--hair)}
+.tp-opt.on{border-color:var(--ink);background:var(--panel)}
+.tp-opt input{width:20px;height:20px;margin-top:2px;accent-color:var(--ink)}
+.tp-opt span{display:grid;gap:2px}
+.tp-rules{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.tp-rules li{display:grid;gap:6px;padding-bottom:10px;border-bottom:1px solid var(--faint)}
+.tp-rules li>span{display:grid}
+.tp-rules .seg{display:grid;grid-template-columns:repeat(3,1fr)}
+.tp-okc{border:2px solid var(--good);background:var(--goodbg)}
+.sw-in:disabled+.sw-ui{opacity:.35}
+#tfilm{position:fixed;inset:0;z-index:200;background:rgba(15,14,12,.94);display:grid;place-items:center;padding:12px}
+#tfilm[hidden]{display:none}
+.tf-box{width:min(1100px,100%);display:grid;gap:10px;color:#f5efe4}
+.tf-stage{position:relative;width:100%;aspect-ratio:16/9;background:#fbf4e6;border-radius:10px;overflow:hidden}
+.tf-stage svg{position:absolute;inset:0;width:100%;height:100%;display:block;font-family:Archivo,Inter,"Helvetica Neue",Arial,sans-serif}
+.tf-cap{min-height:3.2em;margin:0;font-size:clamp(15px,2.2vw,22px);font-weight:600;line-height:1.35;text-align:center}
+.tf-ctl{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.tf-ctl button{min-height:44px;padding:0 16px;border-radius:10px;border:0;background:#e2a33b;color:#1b1916;font-weight:700;font-size:1rem;cursor:pointer}
+.tf-ctl button[aria-pressed=false]{background:#5c5852;color:#fff}
+#tf-prog{width:100%;accent-color:#e2a33b}
+.tf-tip{margin:0;text-align:center;font-size:.8125rem;color:#bfb7aa}
+@media (orientation:landscape){.tf-tip{display:none}}
 </style>
 </head>
 <body>
@@ -855,7 +881,7 @@ function bizStatus(b){
   return `<span class="pill acc">Shared ${d.fields.length} of ${b.fields.length}</span>`;
 }
 function reqHTML(b){
-  const ch=S.choice[b.id]||(S.choice[b.id]={}); b.fields.forEach(k=>{if(!ch[k]) ch[k]='deny';});
+  const ch=S.choice[b.id]||(S.choice[b.id]={}); b.fields.forEach(k=>{if(!ch[k]) ch[k]='deny'; if(tripLocked(k)) ch[k]='deny';});
   const dur=S.dur[b.id]||'trip';
   const picked=b.fields.filter(k=>ch[k]==='share');
   const owner=b.owner?`<p class="note"><b>Same owner as ${esc(bz(b.owner).name)}.</b> ${S.dec[b.owner]&&S.dec[b.owner].fields.length?'Even so, the hotel cannot pass on anything '+first()+' gave it.':'The hotel cannot pass anything on to the bistro.'} The bistro has to ask her itself.</p>`:'';
@@ -1214,7 +1240,7 @@ const YOU={
    m:['A personalised price: 24.80 euros.','The policy now excludes any claim linked to diabetes, because of your gestational diabetes in 2025.','The insurer can see where you have been every 15 minutes for 3 months.']}
  }
 };
-const yb=(b)=>YOU[S.persona][b.id];
+const yb=(b)=>(YOU[S.persona]||{})[b.id]||{why:b.why,refuse:b.refuse,m:b.moments.map(m=>m.b)};
 const ym=(b,m)=>{const i=b.moments.indexOf(m); return (yb(b).m[i])||tpl(m.b);};
 const vLabel=k=>F(k).label.replace('how she moves','how you move');
 /* ================================================================== the vault app */
@@ -1265,7 +1291,7 @@ function vRequest(b){
    (nr?`<p class="note">Your rules set ${nr} of these. Check them, then send.</p>`:'')+
    (sg?helmi(`Here’s my suggestion. I turned on what ${esc(b.name)} needs for what it promised, and left off the rest:<ul class="v-plain">${sg.map(x=>`<li class="${x.on?'pos':''}"><b>${x.on?'On':'Off'}: ${esc(lab1(x.k))}.</b> ${esc(x.why)}</li>`).join('')}</ul>Change anything you like.`):`<button class="v-btn alt" data-v="suggest" data-b="${b.id}">Suggest for me</button>`)+
    `<p class="small muted">Turn on only what you want to share.</p>
-   <ul class="v-sw">${b.fields.map(k=>{const f=F(k), on=ch[k]==='share'; return `<li><label class="sw-row"><span class="sw-txt"><b>${esc(f.label)}</b>${f.kind==='bulk'?` <span class="pill warn">${fmt(f.rows)} rows</span>`:''}<span class="v-val">${esc(f.value)}</span><span class="tiny muted">From ${esc(vHolder(f.src))}${ruleOf(k)!=='ask'?' · <b>your rule: '+(ruleOf(k)==='auto'?'always share':'never share')+'</b>':''}</span></span><input type="checkbox" role="switch" class="sw-in" data-vchg="sw" data-b="${b.id}" data-k="${k}" ${on?'checked':''}><span class="sw-ui" aria-hidden="true"></span></label>${adv(k)}</li>`;}).join('')}</ul>
+   <ul class="v-sw">${b.fields.map(k=>{const f=F(k), on=ch[k]==='share'; return `<li><label class="sw-row"><span class="sw-txt"><b>${esc(f.label)}</b>${f.kind==='bulk'?` <span class="pill warn">${fmt(f.rows)} rows</span>`:''}<span class="v-val">${esc(f.value)}</span>${tripLocked(k)?`<span class="tiny" style="color:var(--bad)"><b>Helmi isn’t connected to ${esc(srcOf(f.src).holder)}.</b> You’ll sort this out yourself.</span>`:''}<span class="tiny muted">From ${esc(vHolder(f.src))}${ruleOf(k)!=='ask'?' · <b>your rule: '+(ruleOf(k)==='auto'?'always share':'never share')+'</b>':''}</span></span><input type="checkbox" role="switch" class="sw-in" data-vchg="sw" data-b="${b.id}" data-k="${k}" ${on?'checked':''} ${tripLocked(k)?'disabled':''}><span class="sw-ui" aria-hidden="true"></span></label>${adv(k)}</li>`;}).join('')}</ul>
    <div class="v-field"><label for="vdur" style="font-weight:600">For how long?</label><select id="vdur" data-vchg="dur" data-b="${b.id}">${Object.entries(DUR).map(([k,l])=>`<option value="${k}" ${dur===k?'selected':''}>${l.replace('Until she takes','Until I take')}</option>`).join('')}</select></div>
    <p class="small"><b>If you say no:</b> ${esc(yb(b).refuse)}</p>
    <button class="v-btn" data-v="send" data-b="${b.id}">${n?'Share '+n+' thing'+(n>1?'s':''):'Share nothing'}</button>`+chatBtn(b);
@@ -1342,7 +1368,7 @@ function vSee(b){
    ${volCard(b)}${chatBtn(b)}
    ${g.length?`<button class="v-btn danger" data-v="stop" data-b="${b.id}">Stop sharing with ${esc(b.name)}</button>`:''}`;
 }
-function vTitle(){ if(TRIP&&V.tab==='meet') return 'Your life for today'; if(TRIP&&/^t(stage|cons|breach)$/.test(V.tab)) return first()+'\'s trip'; if(TRIP&&V.tab==='thome') return 'Home again'; if(TRIP&&V.tab==='tstory') return 'Your trip story';
+function vTitle(){ if(TRIP&&V.tab==='meet') return 'Your life for today'; if(TRIP&&/^t(conn|auto|rules)$/.test(V.tab)) return 'Set up Helmi'; if(TRIP&&/^t(stage|cons)$/.test(V.tab)) return 'Your trip'; if(TRIP&&V.tab==='thome') return 'Home again'; if(TRIP&&V.tab==='tstory') return 'Your trip story';
   if(V.tab==='trip'&&V.biz&&V.vol) return 'Send '+bz(V.biz).name+' something';
   if(V.tab==='trip'&&V.biz&&V.fu) return 'Messages: '+bz(V.biz).name;
   if(V.tab==='share'&&V.hist) return 'Sharing history';
@@ -1358,7 +1384,7 @@ function renderVault(keepFocus){
   if(!V.open) return;
   const ae=document.activeElement, key=keepFocus&&ae&&el.contains(ae)?(ae.id||(ae.dataset.v?'v:'+ae.dataset.v+'|'+(ae.dataset.b||ae.dataset.s||ae.dataset.t||''):ae.dataset.k?'k:'+ae.dataset.k:'')):null;
   let body;
-  if(V.tab==='tstage') body=tStage(); else if(V.tab==='tcons') body=tCons(); else if(V.tab==='tbreach') body=tBreach(); else if(V.tab==='thome') body=tHome(); else if(V.tab==='tstory') body=tStory(); else if(V.tab==='start') body=vStart();
+  if(V.tab==='tconn') body=tConn(); else if(V.tab==='tauto') body=tAuto(); else if(V.tab==='trules') body=tRules(); else if(V.tab==='tstage') body=tStage(); else if(V.tab==='tcons') body=tCons(); else if(V.tab==='thome') body=tHome(); else if(V.tab==='tstory') body=tStory(); else if(V.tab==='start') body=vStart();
   else if(V.tab==='meet') body=vMeet();
   else if(V.tab==='finish') body=vFinish();
   else if(V.tab==='tasks') body=vTasks();
@@ -1406,8 +1432,10 @@ document.addEventListener('click',e=>{
   if(a==='begin'){ const c=(($('vcode').value||'').trim()||randCode()).slice(0,24); let per=S.persona, adv=S.advice, how='link';
     if(!FIXED){ const g=GROUPS[groupOf(c)]; per=g[0]; adv=HP.has('advice')?HP.get('advice')==='on':g[1]; how='code'; }
     S=fresh(per,S.arch,c); S.advice=adv; S.assign=how; log('study start',S.pid+' '+S.persona+' advice '+(adv?'on':'off')+' ('+how+')'); vGo({tab:'meet'}); return; }
-  if(a==='meetgo'){ S.t0=Date.now(); if(TRIP){ tripGo(0); return; } vGo({tab:'home'}); return; }
-  if(a==='tnext'){ tripNext(); return; } if(a==='tstory'){ vGo({tab:'tstory'}); return; } if(a==='tfinish'){ vGo({tab:'finish'}); return; }
+  if(a==='meetgo'){ S.t0=Date.now(); if(TRIP){ tripYouData(); vGo({tab:'tconn'}); return; } vGo({tab:'home'}); return; }
+  if(a==='tsetup'){ const n=v.dataset.n; if(n==='2'){ TS().connSet=1; vGo({tab:'tauto'}); } else if(n==='3') vGo({tab:'trules'}); else { TS().setupDone=1; tripPlan(); tripGo(0); } return; }
+  if(a==='topen'){ tripOpen(v.dataset.b); return; } if(a==='tchat'){ vGo({tab:'trip',biz:v.dataset.b,fu:true,vol:false}); return; } if(a==='tev'){ tripEv(v.dataset.a); return; }
+  if(a==='tnext'){ tripNext(); return; } if(a==='tstory'){ vGo({tab:'tstory'}); return; } if(a==='tfilm'){ TripFilm.open(tripFilmData()); return; } if(a==='tfinish'){ vGo({tab:'finish'}); return; }
   if(a==='finish'){ const tasksDone=S.study&&S.study.tasksDone; log('study finish view'); vGo({tab:tasksDone?'finish':'tasks',biz:null,src:null,see:null}); return; }
   if(a==='taskstart'){ S.study=S.study||{}; S.study.tasks={}; S.study.tasksDone=true; S.task={i:0,t0:Date.now(),stopId:stopTarget()}; log('tasks start'); vGo({tab:'home',biz:null,src:null,see:null}); return; }
   if(a==='taskskipall'){ S.study=S.study||{}; S.study.tasksDone=true; S.study.tasks={skipped:true}; log('tasks skipped'); vGo({tab:'finish'}); return; }
@@ -1418,7 +1446,7 @@ document.addEventListener('click',e=>{
     if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,()=>fallbackCopy(txt,done)); } else fallbackCopy(txt,done); return; }
   if(a==='savefile'){ const blob=new Blob([studyResults()],{type:'text/plain'}); const el=document.createElement('a'); el.href=URL.createObjectURL(blob); el.download=`vault-answers_${S.pid}.txt`; document.body.appendChild(el); el.click(); el.remove(); log('study save',S.pid); const m=$('vfmsg'); if(m) m.textContent='Saved. Send the file to the research team.'; return; }
   if(a==='tab'){ V.redo=false; vGo({tab:v.dataset.t,biz:null,src:null,see:null,vol:false,fu:false,hist:false}); return; }
-  if(a==='back'){ V.redo=false; if(TRIP&&V.tab==='trip'&&V.biz&&!V.vol&&!V.fu){ vGo({tab:'tstage',biz:null}); return; } if(V.vol||V.fu){ vGo({vol:false,fu:false}); return; } vGo({biz:null,src:null,see:null,hist:false}); return; }
+  if(a==='back'){ V.redo=false; if(TRIP&&V.tab==='trip'&&V.biz){ vGo({tab:'tstage',biz:null,fu:false,vol:false}); return; } if(V.vol||V.fu){ vGo({vol:false,fu:false}); return; } vGo({biz:null,src:null,see:null,hist:false}); return; }
   if(a==='see'){ vGo({tab:'share',see:bid,biz:null,src:null,vol:false,fu:false,hist:false}); log('vault see',bid); return; }
   if(a==='vol'){ V.volPick={}; V.volNote=''; V.volDur='trip'; vGo({tab:'trip',biz:bid,vol:true,fu:false,see:null,hist:false}); log('vault volunteer open',bid); return; }
   if(a==='volsend'){ const items=Object.keys(V.volPick||{}).filter(k=>V.volPick[k]).map(k=>({k})); const nt=(V.volNote||'').trim().slice(0,VOLMAX); if(nt) items.push({note:nt}); if(!items.length) return;
@@ -1453,7 +1481,7 @@ document.addEventListener('click',e=>{
   if(a==='more'){ V.shown+=50; renderVault(); const b=$('v-screen').querySelector('[data-v="more"]'); (b||$('vrows')).focus({preventScroll:true}); return; }
   if(a==='all'){ V.shown=1e6; renderVault(); $('vrows').focus&&$('vrows').setAttribute('tabindex','-1'); $('vrows').focus(); return; }
   if(a==='send'){ const b=bz(bid), ch=S.choice[bid]; const fields=b.fields.filter(k=>ch[k]==='share');
-    decide(bid,fields,S.dur[bid]||'trip','vault'); V.redo=false; if(TRIP){ V.cb=bid; TS().done[bid]=1; renderLive(); vGo({tab:'tcons',biz:null}); say(fields.length?`Shared ${fields.length} things with ${b.name}.`:`Nothing shared with ${b.name}.`); return; } V.busy=fields.length?bid:null; renderLive(); vGo({});
+    decide(bid,fields,S.dur[bid]||'trip','vault'); V.redo=false; if(TRIP){ V.cb=bid; V.autoNote=0; TS().done[bid]=1; renderLive(); vGo({tab:'tcons',biz:null}); say(fields.length?`Shared ${fields.length} things with ${b.name}.`:`Nothing shared with ${b.name}.`); return; } V.busy=fields.length?bid:null; renderLive(); vGo({});
     say(fields.length?`Shared ${fields.length} things with ${b.name}.`:`Nothing shared with ${b.name}.`);
     if(V.busy) setTimeout(()=>{V.busy=null; if(V.open) renderVault(); const h=$('v-title'); if(h) h.focus({preventScroll:true});},900);
     return; }
@@ -1462,6 +1490,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target, c=t.dataset.vchg; if(c){
+    if(c==='tconn'){ TS().conn[t.dataset.s]=t.checked; return; } if(c==='tauto'){ TS().auto=t.value; renderVault(true); return; }
     if(c==='sw'){ if(TRIP){ const fl=TS().flips; fl[t.dataset.b]=(fl[t.dataset.b]||0)+1; } S.choice[t.dataset.b][t.dataset.k]=t.checked?'share':'deny'; log('vault choose',t.dataset.b+' '+t.dataset.k+'='+(t.checked?'share':'deny')); renderVault(true);  if(READ) speak(F(t.dataset.k).label+(t.checked?', on':', off')); }
     if(c==='dur'){ S.dur[t.dataset.b]=t.value; log('vault duration',t.dataset.b+' '+t.value); }
     if(c==='volpick'){ (V.volPick=V.volPick||{})[t.dataset.k]=t.checked; renderVault(true); }
@@ -2275,78 +2304,236 @@ document.addEventListener('click',e=>{ const a=e.target.closest('[data-stu]'); i
 document.addEventListener('change',e=>{ if(e.target.id==='stu-br'){ S.breach=e.target.value; log('breach',S.breach); renderLive(); renderStudio(true); } });
 window.__stu={studio:on=>setStudio(on), bizSend:(b,t)=>{ bizSend(b,t,'business app'); renderLive(); }, probe:(b,k)=>{ probe(b,k); renderLive(); }, fields:()=>Object.keys(P().fields), screenText:()=>screenText()};
 
-/* ================================================================== trip mode (workshop) */
-const TS=()=>S.trip||(S.trip={i:0,flips:{},done:{}});
-function tripStops(){ const b=biz(); return [b.find(x=>x.id==='ins'),...b.filter(x=>x.id!=='ins')]; }
-function tripWhen(b){ return b.id==='ins'?'Three days before the trip':b.when.replace(' · ',', '); }
+/* ================================================================== trip mode v2 (workshop) */
+const TS=()=>S.trip||(S.trip={i:0,flips:{},done:{},conn:{},auto:'ask',chats:{},ev:{},step:0});
+/* ---------- second person ---------- */
+const YOBJ="(?=\\s*(?:[.,;:!?)]|$|(?:at|to|in|on|with|for|from|by|into|onto|that|and|or|a|an|the|up|down|off|out|back|again|twice|before|after|when|so|until|about|through|over|while|if|as|because|first|right|directly|properly|later|now|there|here|too|anything|something|nothing|everything|what|how|where|which|who|know|feel|see|get|this|these|those|one|two)\\b))";
+function youT(s){ let t=String(s==null?'':s); const n=first();
+  t=t.replace(new RegExp('\\b'+n+"'s\\b",'g'),'your').replace(new RegExp('\\b'+n+'\\b','g'),'you').replace(/\bherself\b/g,'yourself').replace(/\bHerself\b/g,'Yourself');
+  t=t.replace(new RegExp('\\bher'+YOBJ,'g'),'you').replace(new RegExp('\\bHer'+YOBJ,'g'),'You');
+  t=youify(t).replace(/\byou's\b/g,"you're").replace(/\byou was\b/g,'you were').replace(/\byou doesn't\b/g,"you don't").replace(/\byou isn't\b/g,"you aren't").replace(/\byou wasn't\b/g,"you weren't");
+  t=t.replace(/(^|[.!?]\s+|"\s*)you\b/g,(m,a)=>a+'You');
+  return t.split(/(?<=[.!?])\s+/).map(se=>/^You\b/.test(se)?se.replace(/(, | and | then )([a-z]+)\b/g,(m,sep,w)=>{ if(!/s$/.test(w)||YEXC.has(w)||/(ss|us|is)$/.test(w)||!TVERB.test(w)) return m; let v=/[^aeiou]ies$/.test(w)?w.slice(0,-3)+'y':/(sh|ch|x|ss|zz|o)es$/.test(w)?w.slice(0,-2):w.slice(0,-1); return sep+v; }):se).join(' '); }
+const TVERB=/^(waits|reads|explains|phones|asks|gets|pays|signs|checks|carries|misses|says|books|arrives|needs|queues|finds|goes|takes|gives|sees|hears|uses|tries|wants|calls|writes|types|spends|loses|leaves|returns|sits|stands|walks|eats|orders|shows|repeats|describes|fills|gives|hopes|carries|changes|swaps|moves|rolls|holds|feeds|warms|buys|scans|collects|reads|watches|misses|struggles|learns|tells|answers)$/;
+/* ---------- seeded randomness from the participant code ---------- */
+function tripRng(){ let h=2166136261; for(const c of String(S.pid||'x')) h=Math.imul(h^c.charCodeAt(0),16777619); let a=h>>>0;
+  return ()=>{ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+function shuffle(arr,r){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+/* ---------- extra places (written in second person) ---------- */
+const XLOC={m:'loc.hist'}, NEGLOC=(who)=>({t:'What they keep',dep:['loc.hist'],c:{},neg:1,trade:1,w:'They know only this booking.',b:`${who} can now see where you have been every 15 minutes for 3 months.`});
+const POOL=[
+ {id:'taxi',name:'Kulku Taxi',type:'Taxi company',ord:12,when:'Thu 12 Nov, 10:00',scene:'You arrive and need a taxi to the hotel.',why:'To send a car that suits you and pick you up on time.',refuse:'You can still take a taxi from the rank and explain what you need to the driver.',
+  per:{aino:{f:['need.width','trip','loc.hist'],m:{t:'The car',dep:['need.width'],c:{e:1,m:30,r:1},b:'A wheelchair-accessible van with a ramp is waiting at the exit.',w:'Two ordinary taxis drive off. You wait 30 minutes for an accessible van.'}},
+       elina:{f:['need.dog','trip','loc.hist'],m:{t:'The car',dep:['need.dog'],c:{e:1,m:20,r:1},b:'The driver knows Kide is coming and greets you by name at the entrance.',w:'The first driver refuses to take the dog. You explain the law and wait for the next car.'}},
+       sanna:{f:['need.checkin','trip','loc.hist'],m:{t:'The receipt',dep:['need.checkin'],c:{e:0,m:10},b:'The receipt arrives by email, ready for your expense claim.',w:'You get a paper receipt and type it into the expense system later.'}},
+       laura:{f:['need.child','trip','loc.hist'],m:{t:'The car',dep:['need.child'],c:{e:1,m:25,r:1},b:'The taxi has a baby seat fitted for Onni.',w:'There is no baby seat. You wait 25 minutes for a car that has one.'}}},
+  common:[{t:'Pick-up time',dep:['trip'],c:{e:1,m:5},b:'The driver already knows when you arrive and waits if you are late.',w:'You phone the taxi company to say when you will arrive.'},NEGLOC('The taxi company')]},
+ {id:'pharmacy',name:'Apteekki Kulma',type:'Pharmacy',ord:25,when:'Thu 12 Nov, 17:40',scene:'You have a bad headache and stop at a pharmacy. Its app asks for some information before serving you.',why:'To recommend something safe for you and check it against your health record.',refuse:'You can still buy medicine and answer the pharmacist’s questions at the counter.',
+  per:{aino:{f:['allergy','health.all']},elina:{f:['allergy','health.all']},sanna:{f:['allergy','health.all']},
+       laura:{f:['allergy','health.all'],m:{t:'For Onni',dep:['allergy'],c:{e:1,m:5,r:1},b:'The pharmacist checks Onni’s milk allergy and suggests a cream that is safe for him.',w:'You explain Onni’s allergy at the counter while a queue listens.'}}},
+  common:[{t:'At the counter',dep:['allergy'],c:{e:1,m:5,r:1},b:'The pharmacist checks your allergy record and suggests a painkiller that is safe for you.',w:'You explain your allergies at the counter while a queue listens.',skipFor:['laura']},
+          {t:'What they keep',dep:['health.all'],c:{},neg:1,trade:1,w:'The pharmacy knows only what you tell it.',b:'The pharmacy can now see your whole health record and every prescription.'}]},
+ {id:'tour',name:'Old Town Walks',type:'Guided walking tour',ord:44,when:'Fri 13 Nov, 10:00',scene:'You join a guided walk around the old town.',why:'To plan a route and a guide that work for you, and suggest a pace that fits your fitness.',refuse:'You can still join the standard walk.',
+  per:{aino:{f:['need.mobility','activity'],m:{t:'The route',dep:['need.mobility'],c:{e:1,m:30,r:1},b:'The guide plans a step-free route and skips the cobbled hill.',w:'Halfway, the route goes up 40 steps. You wait at the bottom while the group goes on.'}},
+       elina:{f:['need.assist','activity'],m:{t:'The guide',dep:['need.assist'],c:{e:1,m:0,r:1},b:'The guide describes each place out loud and offers an elbow on the stairs.',w:'The guide points at buildings and says “as you can see”.'}},
+       laura:{f:['need.pram','activity'],m:{t:'The route',dep:['need.pram'],c:{e:1,m:15,r:1},b:'The route is pushchair-friendly, with a stop at a café that has a changing table.',w:'The route has steps and cobbles. You carry the pushchair twice.'}}},
+  common:[{t:'What they keep',dep:['activity'],c:{},neg:1,trade:1,w:'They know only that you booked.',b:'The tour company can now see a year of your steps and sleep.'}]},
+ {id:'spa',name:'Spa Lumo',type:'Hotel spa and gym',ord:40,when:'Fri 13 Nov, 07:00',scene:'The hotel spa offers you a free session.',why:'To build a personalised wellness plan for you.',refuse:'You can still book a standard session.',over:1,
+  per:{aino:{f:['allergy','activity','health.diag']},elina:{f:['allergy','activity','health.diag']},sanna:{f:['allergy','activity','health.diag']},laura:{f:['activity','health.diag']}},
+  common:[{t:'The massage oil',dep:['allergy'],c:{e:1,m:5},b:'The therapist has checked the oils against your allergies.',w:'You read the labels on the oil bottles yourself.'},
+          {t:'Your wellness plan',dep:['activity'],c:{},trade:1,w:'A standard session.',b:'A plan based on a year of your sleep and steps. The spa keeps the data.'},
+          {t:'Your file at the spa',dep:['health.diag'],c:{},neg:1,trade:1,w:'The spa knows nothing about your health.',b:'Your diagnoses are now in the spa’s customer file.'}]},
+ {id:'work',name:'Nordic Product Days',type:'Conference organiser',ord:42,when:'Fri 13 Nov, 09:00',scene:'You spend the day at a conference.',why:'To prepare your badge, your lunch and any support you need.',refuse:'You can still attend. You ask for what you need at the registration desk.',
+  per:{aino:{f:['diet','need.mobility'],m:{t:'The workshop room',dep:['need.mobility'],c:{e:1,m:25,r:1},b:'Your workshop is in a room with step-free access, and your seat is at the end of a row.',w:'Your workshop is up a flight of stairs. Staff move the session while everyone waits.'}},
+       elina:{f:['diet','need.formats'],m:{t:'The slides',dep:['need.formats'],c:{e:1,m:0,r:1},b:'Slides and handouts arrive as accessible text before each talk.',w:'The slides are images your screen reader cannot read.'}},
+       sanna:{f:['diet','need.checkin'],m:{t:'The paperwork',dep:['need.checkin'],c:{e:0,m:10},b:'Your receipt and certificate arrive by email.',w:'You collect paper receipts and scan them in the evening.'}}},
+  common:[{t:'Lunch',dep:['diet'],c:{e:1,m:20},b:'Your lunch is ready, labelled with your name.',w:'Lunch has nothing you can eat. You buy a sandwich outside.'}]},
+ {id:'grocery',name:'Co-op Delivery',type:'Grocery delivery to your hotel',ord:32,when:'Thu 12 Nov, 20:30',scene:'You order a few groceries to your hotel room.',why:'To deliver food that suits you and suggest products you might like.',refuse:'You can still order. You check every product yourself.',
+  per:{aino:{f:['diet','allergy','bank.all']},elina:{f:['diet','allergy','bank.all']},sanna:{f:['diet','allergy','bank.all']},laura:{f:['allergy','bank.all']}},
+  common:[{t:'Your basket',dep:['diet'],c:{e:0,m:15},b:'The app only suggests things you can eat.',w:'You read every label in the app.'},
+          {t:'Allergens',dep:['allergy'],c:{e:0,m:10,r:1},b:'Products with your allergens are hidden.',w:'You check each product for allergens yourself.'},
+          {t:'What they keep',dep:['bank.all'],c:{},neg:1,trade:1,w:'They see only this order.',b:'The shop can now see a year of all your bank payments.'}]},
+ {id:'museum',name:'Design Museum',type:'Museum',ord:60,when:'Sat 14 Nov, 11:00',scene:'On your last morning, you visit a museum.',why:'To give you the right ticket and help you get around.',refuse:'You can still visit with a standard ticket.',
+  per:{aino:{f:['card','need.width'],m:{t:'Getting around',dep:['need.width'],c:{e:1,m:15,r:1},b:'Staff show you the lift to the top floor, wide enough for your chair.',w:'The old lift is too narrow. You miss the top floor.'}},
+       elina:{f:['card','need.audio'],m:{t:'The exhibition',dep:['need.audio'],c:{e:1,m:10,r:1},b:'An audio guide with descriptions is ready for you.',w:'There is no audio description. Your companion reads the labels to you.'}},
+       laura:{f:['need.pramspot','need.babycare'],m:{t:'With Onni',dep:['need.pramspot','need.babycare'],c:{e:1,m:15,r:1},b:'Pushchair parking at the door and a baby-care room on your floor.',w:'You carry the pushchair up the stairs and change Onni on a bench.'}}},
+  common:[{t:'Your ticket',dep:['card'],c:{e:1,m:10},b:'Your companion gets in free. Your card was checked digitally.',w:'You show your card at the desk to get the companion ticket.',onlyIf:'card'}]},
+ {id:'babysit',name:'Kid Care Tallinn',type:'Babysitting service',ord:48,when:'Fri 13 Nov, 17:00',scene:'You book a babysitter so you can go out.',why:'To look after Onni safely while you go out.',refuse:'You can still book. You write down everything the babysitter needs.',
+  per:{laura:{f:['need.child','allergy','loc.hist'],m:{t:'The babysitter',dep:['need.child','allergy'],c:{e:1,m:15,r:1},b:'The babysitter knows Onni’s age, his routine and his milk allergy.',w:'You write everything on a note and hope it is read.'}}},
+  common:[NEGLOC('The babysitting service')]},
+ {id:'cowork',name:'Hub Turku',type:'Coworking space',ord:46,when:'Fri 13 Nov, 13:00',scene:'You need a desk for the afternoon.',why:'To give you a desk that works for you and send your receipts.',refuse:'You can still drop in and take any free desk.',
+  per:{sanna:{f:['need.quiet','need.checkin','bank.all'],m:{t:'Your desk',dep:['need.quiet'],c:{e:1,m:10},b:'A quiet desk away from the café area is booked for you.',w:'The only free desk is next to the coffee machine.'}}},
+  common:[{t:'Receipts',dep:['need.checkin'],c:{e:0,m:10},b:'Receipts arrive by email.',w:'You get paper receipts again.'},{t:'What they keep',dep:['bank.all'],c:{},neg:1,trade:1,w:'They see only this booking.',b:'The coworking space can now see a year of all your bank payments.'}]}
+];
+function makeExtra(x){ const p=x.per[S.persona]; const has=k=>!!P().fields[k];
+  const fields=p.f.filter(has); const moms=[]; if(p.m) moms.push(p.m);
+  x.common.forEach(m=>{ if(m.skipFor&&m.skipFor.includes(S.persona)) return; if(m.onlyIf&&!fields.includes(m.onlyIf)) return; if(m.dep.every(k=>fields.includes(k))) moms.push(m); });
+  return {id:x.id,name:x.name,type:x.type,when:x.when,why:x.why,refuse:x.refuse,fields,moments:moms,over:x.over,extra:1,ord:x.ord,scene:x.scene}; }
+/* ---------- core scenes ---------- */
+const CORE={ins:{ord:0,scene:'Before you leave, you buy travel insurance.'},rail:{ord:10,scene:'You set off on your trip.'},hotel:{ord:15,scene:'You arrive at your hotel.'},bistro:{ord:30,scene:'In the evening, you have dinner at the hotel’s bistro.'},venue:{ord:50,scene:'In the evening, you go to the concert.'}};
+const ACC={aino:{what:'On the way back from the concert, your wheelchair tips on a high kerb. You hurt your shoulder and go to a clinic.',bill:240,link:'your spinal cord injury'},
+ elina:{what:'Leaving the concert, you miss an unmarked step and sprain your wrist. You go to a clinic.',bill:210,link:'your visual impairment'},
+ sanna:{what:'On the concert hall stairs, you slip and twist your knee. You need a clinic visit and an X-ray.',bill:320,link:'your earlier knee injury in your health record'},
+ laura:{what:'Carrying the pushchair down the ferry terminal stairs, your back locks. You see a doctor and a physiotherapist.',bill:260,link:'your history of back pain in your health record'}};
+const EXCESS=50;
+/* ---------- the plan ---------- */
+function tripPlan(){ const t=TS(); if(t.plan) return t.plan; const r=tripRng();
+  BIZ[S.persona]=BIZ[S.persona].filter(b=>!b.extra);
+  const elig=POOL.filter(x=>x.per[S.persona]); const pick=shuffle(elig,r).slice(0,5).map(makeExtra).filter(b=>b.fields.length);
+  pick.forEach(b=>BIZ[S.persona].push(b));
+  const stops=[];
+  biz().forEach(b=>stops.push({k:'req',id:b.id,ord:b.extra?b.ord:CORE[b.id].ord}));
+  stops.push({k:'chat',id:'late',bid:'hotel',ord:14,task:`Your ${(bz('rail').type||'transport').toLowerCase().replace(/ (company|operator)$/,'')} is two hours late. Let ${bz('hotel').name} know you will arrive late.`});
+  const c2=shuffle([{id:'table',bid:'bistro',ord:29,task:`A friend is in town. Ask ${bz('bistro').name} if your table can be for two.`},{id:'doors',bid:'venue',ord:49,task:`Ask ${bz('venue').name} what time the doors open.`}],r)[0]; stops.push(Object.assign({k:'chat'},c2));
+  stops.push({k:'ev',id:'breach',ord:47}); stops.push({k:'ev',id:'accident',ord:52});
+  shuffle([{id:'offer',ord:35},{id:'passport',ord:17},{id:'sister',ord:31},{id:'network',ord:9}],r).slice(0,2).forEach(e=>stops.push(Object.assign({k:'ev'},e)));
+  stops.sort((a,b)=>a.ord-b.ord); t.plan=stops; return stops; }
+const tripReqs=()=>tripPlan().filter(s=>s.k==='req').map(s=>bz(s.id));
+/* ---------- data access, rules, autonomy ---------- */
+function tripLocked(k){ if(!TRIP||!S.trip||!S.trip.connSet) return false; const s=(F(k)||{}).src; return !!s&&s!=='vault'&&!S.trip.conn[s]; }
 function sharedOf(b){ const d=S.dec[b.id]; const g=d?d.fields.slice():[]; (S.vol[b.id]||[]).forEach(x=>{ if(x.k&&!g.includes(x.k)) g.push(x.k); }); return g; }
-/* one moment's outcome for a given set of shared fields */
 function momOut(m,g){ const on=m.dep.every(k=>g.includes(k)); const c=m.c||{};
-  if(m.neg) return {on,bad:on,cost:{e:0,m:0,r:on?1:0}};
+  if(m.neg) return {on,bad:on,trade:!!m.trade,cost:{e:0,m:0,r:on?1:0}};
   if(m.trade) return {on,bad:false,trade:1,cost:{e:0,m:0,r:0}};
   return {on,bad:!on,cost:on?{e:0,m:0,r:0}:{e:c.e||0,m:c.m||0,r:c.r||0}}; }
-function tripSim(pick){ let e=0,m=0,r=0,rows=0,leak=0,leakItems=[]; const stops=tripStops();
-  stops.forEach(b=>{ const g=pick(b); b.moments.forEach(mo=>{ const o=momOut(mo,g); e+=o.cost.e; m+=o.cost.m; r+=o.cost.r; }); g.forEach(k=>rows+=F(k).rows);
-    if(b.id==='bistro'){ g.forEach(k=>{ leak+=F(k).rows; leakItems.push(k); }); } });
-  return {e,m,r,rows,leak,leakItems}; }
+function accPaid(g){ const a=ACC[S.persona]; if(g.includes('health.diag')) return 0; return a.bill-EXCESS; }
+function tripSim(pick){ let e=0,m=0,r=0,rows=0; tripReqs().forEach(b=>{ const g=pick(b); b.moments.forEach(mo=>{ const o=momOut(mo,g); e+=o.cost.e; m+=o.cost.m; r+=o.cost.r; }); g.forEach(k=>rows+=F(k).rows); });
+  const bid=TS().breachAt, leak=bid?pick(bz(bid)).reduce((a,k)=>a+F(k).rows,0):0; const paid=accPaid(pick(bz('ins')));
+  return {e,m,r,rows,leak,paid}; }
 const tripYou=()=>tripSim(b=>sharedOf(b)), tripNone=()=>tripSim(()=>[]), tripAll=()=>tripSim(b=>b.fields);
-function tripSoFar(){ let e=0,m=0,r=0; tripStops().slice(0,TS().i+1).forEach(b=>{ if(!S.dec[b.id]) return; const g=sharedOf(b); b.moments.forEach(mo=>{ const o=momOut(mo,g); e+=o.cost.e; m+=o.cost.m; r+=o.cost.r; }); }); return {e,m,r}; }
-function tripStrip(){ const st=tripStops(), i=TS().i; return `<ol class="tp-strip" aria-label="Your trip: stop ${i+1} of ${st.length}">${st.map((b,j)=>`<li class="${j<i?'past':j===i?'now':''}"><i aria-hidden="true">${j<i?'✓':j+1}</i><span>${esc(b.name.split(' ')[0])}</span></li>`).join('')}</ol>`; }
-function tripMeters(){ const t=tripSoFar(); return `<div class="tp-met" aria-label="So far on the trip"><div><b>${t.e}</b><span>times explaining</span></div><div><b>${t.m}</b><span>minutes arranging</span></div><div><b>${t.r}</b><span>things went wrong</span></div></div>`; }
-function tripGo(i){ TS().i=i; vGo({tab:'tstage',biz:null}); }
-function tDeal(){ const p=P().profile, st=tripStops();
-  return `<div class="tp-deal"><p class="tp-k">You have been dealt a life</p><div class="tp-av" aria-hidden="true">${esc(p.name[0])}</div>
-   <p class="tp-name">${esc(p.name)}, ${esc(p.age)}</p><p class="small">${esc(p.disability)}</p>
-   <dl class="tp-dl"><dt>Home</dt><dd>${esc(p.home_area)}</dd><dt>Work</dt><dd>${esc(p.job)}</dd><dt>At home</dt><dd>${esc(p.household)}</dd><dt>Trip</dt><dd>${esc(p.trip)}</dd></dl></div>`+
-   helmi(`On this trip, ${st.length} places will ask for some of ${esc(first())}'s information. Everyone at the table gets the same places. <b>What happens on the trip depends on what you share.</b> Decide the way you think ${esc(first())} would. There are no right answers.`)+
-   `<button class="v-btn" data-v="meetgo">Start the trip</button>`; }
-function tStage(){ const st=tripStops(), b=st[TS().i]; if(!b) return tStory();
-  const n=b.fields.length;
-  return tripStrip()+tripMeters()+`<div class="tp-when">${esc(tripWhen(b))}</div>
-   <div class="v-card tp-note"><p class="tp-k">New request</p><p class="v-big"><b>${esc(b.name)}</b> is asking for ${n} thing${n===1?'':'s'}</p><p class="small muted">${esc(b.type)}</p><p class="small">${esc(b.why)}</p></div>
-   <button class="v-btn" data-v="biz" data-b="${b.id}">See what they ask</button>`; }
-function tCons(){ const b=bz(V.cb), g=sharedOf(b); const last=TS().i>=tripStops().length-1;
+function tripSoFar(){ let e=0,m=0,r=0; tripReqs().forEach(b=>{ if(!S.dec[b.id]) return; const g=sharedOf(b); b.moments.forEach(mo=>{ const o=momOut(mo,g); e+=o.cost.e; m+=o.cost.m; r+=o.cost.r; }); }); return {e,m,r}; }
+function tripBar(){ const pl=tripPlan(), i=TS().i; const pct=Math.round(i/pl.length*100);
+  return `<div class="tp-prog" aria-label="Stop ${i+1} of ${pl.length}"><i style="width:${pct}%"></i></div>`; }
+function tripMeters(){ const t=tripSoFar(); return `<div class="tp-met" aria-label="So far on your trip"><div><b>${t.e}</b><span>times you explained</span></div><div><b>${t.m}</b><span>minutes lost</span></div><div><b>${t.r}</b><span>things went wrong</span></div></div>`; }
+/* ---------- screens: setup ---------- */
+function tDeal(){ const p=P().profile;
+  return `<div class="tp-deal"><p class="tp-k">This is your life today</p><div class="tp-av" aria-hidden="true">${esc(p.name[0])}</div>
+   <p class="tp-name">You are ${esc(p.name)}, ${esc(p.age)}</p><p class="small">${esc(youT(p.disability))}</p>
+   <dl class="tp-dl"><dt>You live in</dt><dd>${esc(p.home_area)}</dd><dt>You work as</dt><dd>${esc(p.job)}</dd><dt>At home</dt><dd>${esc(youT(p.household))}</dd><dt>Your trip</dt><dd>${esc(p.trip)}</dd></dl></div>`+
+   helmi(`Hi, I’m Helmi, your assistant. Before your trip, let’s set me up. Then, over the next few days, places on your trip will ask for some of your information. <b>What happens on your trip depends on what you share.</b> Decide as you would if this were your life.`)+
+   `<button class="v-btn" data-v="meetgo">Set up Helmi</button>`; }
+function tConn(){ const t=TS(), src=P().sources.filter(s=>s.id!=='vault');
+  return `<p class="tp-k">Set up Helmi · 1 of 3</p>`+helmi(`Which of your data may I read? I never copy it. I fetch a single line only when you say yes. If you don’t connect a place, I can’t fetch anything from it, and you’ll sort those things out yourself on the trip.`)+
+   `<ul class="v-sw">${src.map(s=>`<li><label class="sw-row"><span class="sw-txt"><b>${esc(s.holder)}</b><span class="v-val">${esc(youT(s.what))}</span><span class="tiny muted">${fmt(s.rows)} rows about you</span></span><input type="checkbox" role="switch" class="sw-in" data-vchg="tconn" data-s="${s.id}" ${t.conn[s.id]?'checked':''}><span class="sw-ui" aria-hidden="true"></span></label></li>`).join('')}</ul>
+   <p class="small muted">The needs you wrote yourself, in your access profile, are always available to me.</p><button class="v-btn" data-v="tsetup" data-n="2">Next</button>`; }
+function tAuto(){ const t=TS(); const opt=[['ask','Ask me every time','I show you each request. You decide every switch.'],['suggest','Suggest, then I decide','I turn on what I think you need. You check and change it.'],['auto','Follow my rules and tell me after','If your rules cover a request, I answer it for you and tell you afterwards.']];
+  return `<p class="tp-k">Set up Helmi · 2 of 3</p>`+helmi(`How much should I decide for you?`)+
+   `<div class="tp-opts" role="radiogroup">${opt.map(([v,l,d])=>`<label class="v-card tp-opt ${t.auto===v?'on':''}"><input type="radio" name="tauto" value="${v}" data-vchg="tauto" ${t.auto===v?'checked':''}><span><b>${l}</b><span class="small">${d}</span></span></label>`).join('')}</div>
+   <button class="v-btn" data-v="tsetup" data-n="3">Next</button>`; }
+function tripRuleKeys(){ const own={aino:'need.mobility',elina:'need.dog',sanna:'need.quiet',laura:'need.child'}[S.persona]; return [own,'allergy','diet','trip','card','loc.hist','bank.all','health.diag'].filter(k=>k&&P().fields[k]); }
+function tRules(){ return `<p class="tp-k">Set up Helmi · 3 of 3</p>`+helmi(`Any rules? For each item, should I always share it when a place asks, never share it, or ask you?`)+
+   `<ul class="tp-rules">${tripRuleKeys().map(k=>{ const r=ruleOf(k); return `<li><span><b>${esc(F(k).label)}</b>${tripLocked(k)?'<span class="tiny muted">Not connected</span>':''}</span><div class="seg" role="radiogroup" aria-label="${esc(F(k).label)}">${[['auto','Always'],['ask','Ask me'],['never','Never']].map(([v,l])=>`<label><input type="radio" name="tr-${k.replace('.','_')}" value="${v}" data-vchg="rule" data-k="${k}" ${r===v?'checked':''}><span>${l}</span></label>`).join('')}</div></li>`; }).join('')}</ul>
+   <button class="v-btn" data-v="tsetup" data-n="go">Start the trip</button>`; }
+/* ---------- screens: the trip ---------- */
+function tStage(){ const st=tripPlan()[TS().i]; if(!st) return tHome();
+  if(st.k==='chat') return tChatTask(st); if(st.k==='ev') return tEvent(st);
+  const b=bz(st.id), n=b.fields.length, scene=b.extra?b.scene:CORE[b.id].scene;
+  return tripBar()+tripMeters()+`<div class="tp-when">${esc(b.id==='ins'?'Three days before your trip':b.when.replace(' · ',', '))}</div><p class="tp-scene">${esc(scene)}</p>
+   <div class="v-card tp-note"><p class="tp-k">New request</p><p class="v-big"><b>${esc(b.name)}</b> is asking for ${n} thing${n===1?'':'s'}</p><p class="small muted">${esc(b.type)}</p><p class="small">${esc(b.extra?b.why:yb(b).why)}</p></div>
+   <button class="v-btn" data-v="topen" data-b="${b.id}">See what they ask</button>`; }
+function tripOpen(bid){ const b=bz(bid), t=TS(), ch=S.choice[bid]={};
+  if(t.auto==='suggest'){ suggestFor(b).forEach(s=>ch[s.k]=s.on?'share':'deny'); }
+  applyRules(b,ch); b.fields.forEach(k=>{ if(!ch[k]) ch[k]='deny'; if(tripLocked(k)) ch[k]='deny'; });
+  if(t.auto==='auto'&&b.fields.every(k=>ruleOf(k)!=='ask'||tripLocked(k))){ const fields=b.fields.filter(k=>ch[k]==='share'); decide(bid,fields,'trip','rules'); t.autoDone=(t.autoDone||0)+1; V.cb=bid; V.autoNote=1; renderLive(); vGo({tab:'tcons',biz:null}); return; }
+  S.openedAt[bid]=Date.now(); V.autoNote=0; vGo({tab:'trip',biz:bid}); }
+function tCons(){ const b=bz(V.cb), g=sharedOf(b), scene=b.extra?b.scene:CORE[b.id].scene;
   const lis=b.moments.map((m,j)=>{ const o=momOut(m,g), c=o.cost, chips=[];
     if(c.e) chips.push(`+${c.e} time explaining`); if(c.m) chips.push(`+${c.m} min`); if(c.r) chips.push('something went wrong');
-    const cls=o.trade?(o.on?'trade':'flat'):o.bad?'bad':'good', mark=o.trade?(o.on?'⇄':'·'):o.bad?'✗':'✓';
-    return `<li class="${cls}" style="animation-delay:${0.25+j*0.9}s"><span class="tp-mk" aria-hidden="true">${mark}</span><div><b>${esc(m.t)}</b><p>${esc(tpl(o.on?m.b:m.w))}</p>${chips.length?`<span class="tp-chip">${chips.join(' · ')}</span>`:''}${o.trade&&o.on?'<span class="tp-chip">a trade-off you accepted</span>':''}</div></li>`; }).join('');
-  return tripStrip()+tripMeters()+`<div class="tp-when">${esc(b.id==='ins'?'During the trip':tripWhen(b))} · ${esc(b.name)}</div>
-   <ul class="tp-moms">${lis}</ul>
-   <p class="small muted tp-fade" style="animation-delay:${0.25+b.moments.length*0.9}s">${g.length?`You shared ${g.length} of ${b.fields.length} things they asked for.`:`You shared nothing with ${esc(b.name)}.`}</p>
-   <button class="v-btn tp-fade" style="animation-delay:${0.4+b.moments.length*0.9}s" data-v="tnext">${last?'Go home':'Continue the trip'}</button>`; }
-function tBreach(){ const b=biz().find(x=>x.owner==='hotel')||bz('bistro'), h=bz(b.owner||'hotel'), g=sharedOf(b); const all=b.fields.reduce((a,k)=>a+F(k).rows,0);
-  return tripStrip()+`<div class="tp-when tp-alarm">Friday 13 Nov, 03:12</div>
-   <div class="v-card tp-breach"><p class="tp-k">Something you did not control</p><p class="v-big"><b>${esc(b.name)}'s booking system is broken into.</b></p>
-   <p class="small">The attacker copies everything the bistro holds about its guests.</p></div>`+
-   (g.length?`<div class="v-card"><p><b>About ${esc(first())}, the attacker gets:</b></p><ul class="v-plain">${g.map(k=>`<li>${esc(F(k).label)}${F(k).rows>1?` (${fmt(F(k).rows)} rows)`:''}</li>`).join('')}</ul></div>`:
-     `<div class="v-card"><p><b>The attacker finds nothing about ${esc(first())}.</b> You shared nothing with the bistro.</p></div>`)+
-   helmi(`${esc(h.name)} has the same owner, but it keeps its own records, so nothing you gave the hotel was in the bistro's system. ${all>g.reduce((a,k)=>a+F(k).rows,0)?`If you had shared everything the bistro asked for, the attacker would have ${fmt(all)} rows about you.`:''} Her records at the health service, Google, her bank and the rest were never copied, so they are untouched.`)+
-   `<button class="v-btn" data-v="tnext">Continue the trip</button>`; }
-function tHome(){ const st=tripStops(); const ended=[], open=[];
-  st.forEach(b=>{ const d=S.dec[b.id], g=sharedOf(b); if(!g.length) return; const dur=d?d.dur:'trip'; (dur==='trip'?ended:open).push([b,g,dur]); });
-  return `<div class="tp-when">Sunday 15 Nov · Home again</div>`+helmi(`The trip is over. Access you gave for <b>this trip only</b> has ended on its own.`)+
+    const cls=o.bad?'bad':o.trade?(o.on?'trade':'flat'):'good', mark=o.bad?'✗':o.trade?(o.on?'⇄':'·'):'✓';
+    return `<li class="${cls}" style="animation-delay:${0.25+j*0.8}s"><span class="tp-mk" aria-hidden="true">${mark}</span><div><b>${esc(youT(m.t))}</b><p>${esc(youT(tpl(o.on?m.b:m.w)))}</p>${chips.length?`<span class="tp-chip">${chips.join(' · ')}</span>`:''}${o.trade&&o.on&&!o.bad?'<span class="tp-chip">a trade-off you accepted</span>':''}</div></li>`; }).join('');
+  const locked=b.fields.filter(tripLocked);
+  return tripBar()+tripMeters()+`<div class="tp-when">${esc(b.id==='ins'?'Your insurance':b.when.replace(' · ',', '))} · ${esc(b.name)}</div>`+
+   (V.autoNote?helmi(`I answered ${esc(b.name)} for you using your rules: ${g.length?'I shared '+esc(g.map(k=>lcl(F(k).label)).join(', ')):'I shared nothing'}.`):'')+
+   `<p class="tp-scene">${esc(scene)} Here is what happens.</p><ul class="tp-moms">${lis}</ul>
+   <p class="small muted tp-fade" style="animation-delay:${0.25+b.moments.length*0.8}s">${g.length?`You shared ${g.length} of ${b.fields.length} things they asked for.`:`You shared nothing with ${esc(b.name)}.`}${locked.length?` ${locked.length} could not be shared because Helmi wasn’t connected to ${esc([...new Set(locked.map(k=>srcOf(F(k).src).holder))].join(', '))}.`:''}</p>
+   <button class="v-btn tp-fade" style="animation-delay:${0.4+b.moments.length*0.8}s" data-v="tnext">Continue</button>`; }
+function tChatTask(st){ const b=bz(st.bid), sent=(TS().chats[st.id]||0)>0;
+  return tripBar()+tripMeters()+`<div class="tp-when">Something you need</div><div class="v-card tp-note"><p class="tp-k">Your task</p><p class="v-big">${esc(st.task)}</p></div>`+
+   helmi(sent?`Done. ${esc(b.name)} has your message.`:`Write to ${esc(b.name)} in Messages. Type it as you would yourself.`)+
+   `<button class="v-btn" data-v="tchat" data-b="${b.id}">${sent?'See the chat':'Open Messages'}</button>${sent?'<button class="v-btn alt" data-v="tnext">Continue</button>':''}`; }
+function tChatFoot(b){ const st=tripPlan()[TS().i]; if(!TRIP||!st) return ''; if(st.k==='chat'&&st.bid===b.id){ const before=TS().chatStart||0; const n=msgs(b.id).filter((m,i)=>m.from==='me'&&i>=before).length; TS().chats[st.id]=n;
+    return n?`<button class="v-btn" data-v="tnext">Continue the trip</button>`:`<p class="small muted">Send a message to continue.</p>`; }
+  if(st.k==='ev'&&st.id==='passport'&&b.id==='hotel') return `<button class="v-btn" data-v="tnext">Continue the trip</button>`; return ''; }
+function tEvent(st){ const t=TS(), ev=t.ev[st.id]||{}; let body='';
+  if(st.id==='breach'){ const cand=tripReqs().filter(b=>b.id!=='ins'&&sharedOf(b).length); if(!t.breachAt) t.breachAt=(cand.length?cand[Math.floor(tripRng()()*cand.length)]:bz('bistro')).id;
+    const b=bz(t.breachAt), g=sharedOf(b), all=b.fields.reduce((a,k)=>a+F(k).rows,0), got=g.reduce((a,k)=>a+F(k).rows,0);
+    body=`<div class="tp-when tp-alarm">Friday 13 Nov, 03:12</div><div class="v-card tp-breach"><p class="tp-k">Something you did not control</p><p class="v-big"><b>The systems at ${esc(b.name)} are broken into.</b></p><p class="small">The attacker copies everything ${esc(b.name)} holds about its customers.</p></div>`+
+     (g.length?`<div class="v-card"><p><b>About you, the attacker gets:</b></p><ul class="v-plain">${g.map(k=>`<li>${esc(F(k).label)}${F(k).rows>1?` (${fmt(F(k).rows)} rows)`:''}</li>`).join('')}</ul></div>`:`<div class="v-card"><p><b>The attacker finds nothing about you.</b> You shared nothing with ${esc(b.name)}.</p></div>`)+
+     helmi(`Only what you gave ${esc(b.name)} was there. ${all>got?`If you had shared everything they asked for, the attacker would have ${fmt(all)} rows about you. `:''}Your records at the health service, Google, your bank and the rest were never copied, so they are untouched.`);
+  }
+  else if(st.id==='accident'){ const a=ACC[S.persona], g=sharedOf(bz('ins')), paid=accPaid(g); t.ev.accident={paid};
+    body=`<div class="tp-when tp-alarm">Friday 13 Nov, 22:40</div><div class="v-card tp-breach"><p class="tp-k">An accident</p><p class="v-big">${esc(a.what)}</p><p class="small">The bill is <b>${a.bill} euros</b>. You claim it from your travel insurance with ${esc(bz('ins').name)}.</p></div>`+
+     (paid?`<div class="v-card tp-okc"><p><b>Your claim is paid: ${paid} euros.</b> You pay the first ${EXCESS} euros yourself, as with any standard policy.</p></div>`+helmi(g.includes('health.all')?`You shared your health record but not your diagnoses, so your policy has no exclusions.`:`You bought the standard policy, so the insurer judged the claim on the standard terms.`)
+       :`<div class="v-card tp-breach"><p><b>Your claim is refused. You pay all ${a.bill} euros yourself.</b></p></div>`+helmi(`You shared your diagnoses with ${esc(bz('ins').name)}. Your policy excludes any claim linked to ${esc(a.link)}, and the insurer says this accident is linked.`));
+  }
+  else if(st.id==='offer'){ const k='loc.hist', locked=tripLocked(k);
+    body=`<div class="tp-when">Thursday 12 Nov, 21:15</div><div class="v-card tp-note"><p class="tp-k">A message from ${esc(bz('ins').name)}</p><p class="v-big">“Share 3 months of your location history and get 20% off your next policy.”</p></div>`+
+     (ev.done?helmi(ev.yes?`Shared. ${esc(bz('ins').name)} can now see where you have been every 15 minutes for 3 months.`:locked?`I couldn’t share it: I’m not connected to Google.`:`OK, I said no. Nothing was shared.`)+`<button class="v-btn" data-v="tnext">Continue</button>`
+      :helmi(`That is ${fmt(F(k).rows)} location points about you. ${locked?'I’m not connected to Google, so I couldn’t share it anyway.':'Your choice.'}`)+`<div class="v-quick two"><button class="v-btn ${locked?'alt':''}" data-v="tev" data-a="yes" ${locked?'disabled':''}>Share it for 20% off</button><button class="v-btn alt" data-v="tev" data-a="no">No thanks</button></div>`);
+  }
+  else if(st.id==='passport'){ if(!ev.sent){ ev.sent=1; t.ev.passport=ev; bizSend('hotel','Could you send us a photo of your passport and your ID number before you arrive?','trip'); renderLive(); }
+    body=`<div class="tp-when">Thursday 12 Nov, 11:20</div><div class="v-card tp-note"><p class="tp-k">New message</p><p class="v-big">${esc(bz('hotel').name)} has written to you.</p></div>`+helmi(`Open the message and decide how to answer.`)+`<button class="v-btn" data-v="tchat" data-b="hotel">Open Messages</button>`;
+  }
+  else if(st.id==='sister'){ const h=bz('hotel'), b=biz().find(x=>x.owner==='hotel'); if(!ev.done){ ev.done=1; t.ev.sister=ev; const k=(sharedOf(h)[0]||h.fields[0]); audit(b.id,F(k).label,'blocked: not in her approval',''); renderLive(); }
+    body=`<div class="tp-when">Thursday 12 Nov, 19:05</div><div class="v-card tp-breach"><p class="tp-k">Blocked</p><p class="v-big"><b>${esc(b.name)}</b> tried to read what you gave ${esc(h.name)}.</p></div>`+
+     helmi(`They have the same owner, but each place only gets what you approved for it. I blocked it and wrote it in your sharing history, and in theirs.`)+`<button class="v-btn" data-v="tnext">Continue</button>`;
+  }
+  else if(st.id==='network'){ const r=bz('rail');
+    body=`<div class="tp-when">Thursday 12 Nov, morning</div><div class="v-card tp-note"><p class="tp-k">A yes-or-no question</p><p class="v-big"><b>${esc(r.name)}</b> asks: are you at the station entrance yet?</p><p class="small">So their assistance can meet you there.</p></div>`+
+     (ev.done?helmi(ev.yes?`I answered “yes” through the mobile network. ${esc(r.name)} got the answer, never your location.`:`OK, I didn’t answer. ${esc(r.name)} will wait for you at the usual meeting point.`)+`<button class="v-btn" data-v="tnext">Continue</button>`
+      :helmi(`I can answer yes or no through your mobile network, using Nokia’s Network as Code. They get the answer, never your location.`)+`<div class="v-quick two"><button class="v-btn" data-v="tev" data-a="yes">Let Helmi answer</button><button class="v-btn alt" data-v="tev" data-a="no">Don’t answer</button></div>`);
+  }
+  const showNext=st.id==='breach'||st.id==='accident';
+  return tripBar()+tripMeters()+body+(showNext?`<button class="v-btn" data-v="tnext">Continue</button>`:''); }
+function tripEv(ans){ const st=tripPlan()[TS().i], t=TS(); const ev=t.ev[st.id]=t.ev[st.id]||{}; ev.done=1; ev.yes=ans==='yes';
+  if(st.id==='offer'&&ev.yes&&!tripLocked('loc.hist')){ const d=S.dec.ins; const f=d?d.fields.slice():[]; if(!f.includes('loc.hist')) f.push('loc.hist'); decide('ins',f,d?d.dur:'until','offer'); renderLive(); }
+  vGo({tab:'tstage'}); }
+function tHome(){ const ended=[], open=[];
+  tripReqs().forEach(b=>{ const d=S.dec[b.id], g=sharedOf(b); if(!g.length) return; (d&&d.dur!=='trip'?open:ended).push([b,g,d?d.dur:'trip']); });
+  return `<div class="tp-when">Sunday 15 Nov · Home again</div>`+helmi(`Your trip is over. Access you gave for <b>this trip only</b> has ended on its own.`)+
    (ended.length?`<div class="v-card"><p><b>Access ended</b></p><ul class="v-plain">${ended.map(([b,g])=>`<li>${esc(b.name)}: ${g.length} item${g.length>1?'s':''}</li>`).join('')}</ul></div>`:'')+
    (open.length?`<div class="v-card tp-breach"><p><b>Still open</b></p><ul class="v-plain">${open.map(([b,g,dur])=>`<li>${esc(b.name)} can still see ${g.length} item${g.length>1?'s':''} (${esc(DURT[dur]||dur)})</li>`).join('')}</ul></div>`:'')+
-   (!ended.length&&!open.length?`<div class="v-card"><p>You shared nothing on this trip, so no business holds anything new about ${esc(first())}.</p></div>`:'')+
+   (!ended.length&&!open.length?`<div class="v-card"><p>You shared nothing on this trip, so no business holds anything new about you.</p></div>`:'')+
    `<button class="v-btn" data-v="tstory">See your trip story</button>`; }
 function tBar(label,vals,unit){ const mx=Math.max(1,...vals.map(v=>v[1]));
   return `<div class="tp-cmp"><p class="tp-k">${label}</p>${vals.map(([n,v,c])=>`<div class="tp-row ${c}"><span>${n}</span><i style="width:${Math.max(2,v/mx*100)}%"></i><b>${fmt(v)}${unit||''}</b></div>`).join('')}</div>`; }
-function tStory(){ const y=tripYou(), n=tripNone(), a=tripAll(), st=tripStops();
-  const lines=st.map(b=>{ const g=sharedOf(b); const os=b.moments.map(m=>momOut(m,g)); const good=os.filter(o=>!o.bad&&!o.trade).length, tot=os.filter(o=>!o.trade).length; return `<li><b>${esc(b.name)}</b>: shared ${g.length} of ${b.fields.length}${tot?` · ${good} of ${tot} moments went smoothly`:''}</li>`; }).join('');
-  return `<div class="tp-when">Your trip story</div>`+helmi(`Here is how ${esc(first())}'s trip went because of your choices, next to two other ways it could have gone.`)+
-   tBar('Times explaining her needs',[['You',y.e,'me'],['Shared nothing',n.e,''],['Shared everything',a.e,'']])+
-   tBar('Minutes spent arranging things',[['You',y.m,'me'],['Shared nothing',n.m,''],['Shared everything',a.m,'']],' min')+
+function tStory(){ const y=tripYou(), n=tripNone(), a=tripAll(), t=TS();
+  const lines=tripReqs().map(b=>{ const g=sharedOf(b); const os=b.moments.map(m=>momOut(m,g)); const good=os.filter(o=>!o.bad&&!o.trade).length, tot=os.filter(o=>!o.trade).length; return `<li><b>${esc(b.name)}</b>: you shared ${g.length} of ${b.fields.length}${tot?` · ${good} of ${tot} moments went smoothly`:''}</li>`; }).join('');
+  const nc=Object.values(t.conn).filter(Boolean).length, ns=P().sources.filter(s=>s.id!=='vault').length;
+  return `<div class="tp-when">Your trip story</div>`+`<button class="v-btn" data-v="tfilm">▶ Watch your trip (about a minute)</button>`+helmi(`Here is how your trip went because of your choices, next to two other ways it could have gone. You let me read ${nc} of ${ns} places that hold your data${t.autoDone?`, and I answered ${t.autoDone} request${t.autoDone>1?'s':''} for you using your rules`:''}.`)+
+   tBar('Times you explained your needs',[['You',y.e,'me'],['Shared nothing',n.e,''],['Shared everything',a.e,'']])+
+   tBar('Minutes lost arranging things',[['You',y.m,'me'],['Shared nothing',n.m,''],['Shared everything',a.m,'']],' min')+
    tBar('Things that went wrong',[['You',y.r,'me'],['Shared nothing',n.r,''],['Shared everything',a.r,'']])+
-   tBar('Rows of her data businesses could reach',[['You',y.rows,'me'],['Shared nothing',n.rows,''],['Shared everything',a.rows,'']])+
-   tBar('Rows taken in the bistro break-in',[['You',y.leak,'me'],['Shared nothing',n.leak,''],['Shared everything',a.leak,'']])+
+   tBar('Insurance paid for your accident',[['You',y.paid,'me'],['Shared nothing',n.paid,''],['Shared everything',a.paid,'']],' €')+
+   tBar('Rows of your data businesses could reach',[['You',y.rows,'me'],['Shared nothing',n.rows,''],['Shared everything',a.rows,'']])+
+   tBar('Rows taken in the break-in',[['You',y.leak,'me'],['Shared nothing',n.leak,''],['Shared everything',a.leak,'']])+
    `<div class="v-card"><p><b>Stop by stop</b></p><ul class="v-plain">${lines}</ul></div>`+
-   helmi(`Everyone at the table lived a different life on the same trip. Keep this screen open for the discussion.`)+
-   `<button class="v-btn" data-v="tfinish">Answer a few questions</button>`; }
-function tripNext(){ const t=TS(), b=bz(V.cb);
-  if(V.tab==='tcons'&&b&&b.owner==='hotel'&&!t.breachSeen){ t.breachSeen=1; vGo({tab:'tbreach'}); return; }
-  if(t.i>=tripStops().length-1){ vGo({tab:'thome'}); return; }
-  tripGo(t.i+1); }
-function tripSummary(){ const y=tripYou(), fl=TS().flips, hes={}; Object.keys(fl).forEach(k=>{ const d=S.dec[k]; hes[k]=Math.max(0,fl[k]-(d?d.fields.length:0)); }); return {flips:fl,hes,e:y.e,m:y.m,r:y.r,rows:y.rows,leak:y.leak}; }
+   helmi(`Keep this screen open for the discussion.`)+`<button class="v-btn" data-v="tfinish">Answer two quick questions</button>`; }
+/* ---------- navigation ---------- */
+function tripGo(i){ TS().i=i; V.autoNote=0; const st=tripPlan()[i]; if(st&&st.k==='chat') TS().chatStart=msgs(st.bid).length; vGo({tab:'tstage',biz:null,fu:false}); }
+function tripNext(){ const t=TS(); if(t.i>=tripPlan().length-1){ vGo({tab:'thome',biz:null,fu:false}); return; } tripGo(t.i+1); }
+function tripSummary(){ const y=tripYou(), t=TS(), fl=t.flips, hes={}; Object.keys(fl).forEach(k=>{ const d=S.dec[k]; hes[k]=Math.max(0,fl[k]-(d?d.fields.length:0)); });
+  return {flips:fl,hes,e:y.e,m:y.m,r:y.r,rows:y.rows,leak:y.leak,paid:y.paid,breachAt:t.breachAt||null,
+    conn:Object.keys(t.conn).filter(k=>t.conn[k]),nsrc:P().sources.filter(s=>s.id!=='vault').length,auto:t.auto,autoDone:t.autoDone||0,
+    rules:Object.fromEntries(Object.entries(S.rules)),extras:tripReqs().filter(b=>b.extra).map(b=>b.id),
+    chats:t.chats,ev:Object.fromEntries(Object.entries(t.ev).map(([k,v])=>[k,v.yes!=null?(v.yes?'yes':'no'):(v.paid!=null?v.paid:1)])),
+    mins:Math.round((Date.now()-S.t0)/6000)/10}; }
+const _vChatT=vChat; vChat=function(b){ return _vChatT(b)+(TRIP?tChatFoot(b):''); };
+function tripYouData(){ const d=P(); if(d.__you) return; d.__you=1; Object.values(d.fields).forEach(f=>{ f.label=youT(f.label); f.value=youT(f.value); }); }
+function tripFilmData(){ const per=S.persona, plan=tripPlan(), stops=[]; let e=0,m=0;
+  plan.forEach(st=>{
+    if(st.k==='req'){ const b=bz(st.id), g=sharedOf(b); if(!S.dec[b.id]) return; b.moments.forEach(mo=>{ const o=momOut(mo,g); e+=o.cost.e; m+=o.cost.m; });
+      const os=b.moments.map(mo=>({mo,o:momOut(mo,g)})); if(!os.length) return;
+      const key=os.find(x=>x.o.bad&&!x.o.trade)||os.find(x=>x.o.bad)||os.find(x=>!x.o.trade)||os[0];
+      const text=youT(tpl(key.o.on?key.mo.b:key.mo.w)), ok=key.o.bad?false:(key.o.trade?null:true);
+      stops.push({kind:'stop',id:b.id,per,name:b.name,when:b.id==='ins'?'Before your trip':b.when.replace(' · ',', '),ok,title:youT(key.mo.t),text,e,m,say:text.split(/(?<=[.!?])\s+/)[0]}); }
+    else if(st.k==='ev'&&st.id==='breach'&&TS().breachAt){ const b=bz(TS().breachAt), g=sharedOf(b);
+      stops.push({kind:'breach',name:b.name,text:g.length?'The attacker gets: '+g.map(k=>lcl(F(k).label)).join(', ')+'. Nothing else about you was there.':'The attacker finds nothing about you.',say:`${b.name} is broken into. `+(g.length?'The attacker gets only what you gave them.':'They find nothing about you.')}); }
+    else if(st.k==='ev'&&st.id==='accident'){ const a=ACC[per], paid=accPaid(sharedOf(bz('ins')));
+      stops.push({kind:'accident',per,ok:paid>0,title:paid?`Claim paid: ${paid} euros`:'Claim refused',text:a.what+(paid?'':' Your policy excludes it, because you shared your diagnoses.'),say:a.what.split(/(?<=[.!?])\s+/)[0]+' '+(paid?`Your insurance pays ${paid} euros.`:'Your claim is refused.')}); } });
+  const y=tripYou(), n=tripReqs().filter(b=>sharedOf(b).length).length;
+  return {intro:'This is your trip.',sub:P().profile.trip.split('(')[0].trim(),stops,
+    outro:{rows:[[y.e,'times you explained'],[y.m,'minutes lost'],[y.paid+' €','insurance paid']],sub:`You shared something with ${n} of ${tripReqs().length} places.`,say:`You explained your needs ${y.e} times and lost ${y.m} minutes.`}}; }
 
 /* ================================================================== workshop group screen (#group) */
 const GKEY='tos-group-v1'; let GR=[]; try{ GR=JSON.parse(localStorage.getItem(GKEY)||'[]'); }catch(e){ GR=[]; }
@@ -2359,7 +2546,9 @@ function gTalk(){ if(!GR.length) return []; const out=[], n=GR.length;
   const insNo=GR.filter(r=>r.dec.ins&&!r.dec.ins.shared.length).length; out.push(`${insNo} of ${n} shared nothing with the insurer.`);
   const hes={}; GR.forEach(r=>Object.entries(r.trip.hes||{}).forEach(([k,v])=>hes[k]=(hes[k]||0)+v)); const top=Object.entries(hes).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1])[0];
   if(top) out.push(`Most changes of mind: ${GSTOPS.find(s=>s[0]===top[0])?.[1]||top[0]} (${top[1]} in total). Ask why.`);
-  const leak=GR.filter(r=>r.trip.leak>0).length; out.push(`${leak} of ${n} had something taken in the bistro break-in.`);
+  const leak=GR.filter(r=>r.trip.leak>0).length; out.push(`${leak} of ${n} had something taken in a break-in.`);
+  const full=GR.filter(r=>(r.trip.conn||[]).length===r.trip.nsrc).length; out.push(`${full} of ${n} let Helmi read every place that holds their data.`);
+  const refused=GR.filter(r=>r.trip.paid===0).length; if(refused) out.push(`${refused} had the accident claim refused because they shared their diagnoses.`);
   const allIn=GR.filter(r=>GSTOPS.every(([id])=>r.dec[id]&&r.dec[id].shared.length===r.dec[id].asked)).length; if(allIn) out.push(`${allIn} shared everything with every place.`);
   const mn=Math.min(...GR.map(r=>r.trip.m)), mx=Math.max(...GR.map(r=>r.trip.m)); if(n>1&&mn!==mx){ const los=GR.filter(r=>r.trip.m===mn), his=GR.filter(r=>r.trip.m===mx); out.push(`Least time lost: ${los.map(r=>gName(r)+' ('+r.code+')').join(', ')}, ${mn} min. Most: ${his.map(r=>gName(r)+' ('+r.code+')').join(', ')}, ${mx} min.`); }
   return out; }
@@ -2371,10 +2560,11 @@ function renderGroup(){ const el=$('grp'); if(!el) return;
     <div class="g-in"><textarea id="g-paste" rows="2" placeholder="Paste answers (TOS1:…)"></textarea><input type="file" id="g-file" accept=".xlsx,.csv,.txt" multiple><div class="row"><button class="btn sm" data-g="add">Add</button><button class="btn alt sm" data-g="clear">Clear all</button></div><p class="tiny muted" id="g-msg" role="status"></p></div></div>
    ${GR.length?`<div class="g-wrap"><table class="g-tab"><thead><tr><th></th>${GR.map(r=>`<th scope="col"><span class="g-av">${esc(gName(r)[0])}</span>${esc(gName(r))}<small>${esc(r.code)}</small></th>`).join('')}</tr></thead><tbody>
     ${GSTOPS.map(([id,l])=>row(l+' <small>shared / asked</small>',r=>cell(r,id))).join('')}
-    ${row('Times explaining',r=>`<td class="g-num">${r.trip.e}</td>`,'g-sep')}
+    ${row('Extra places <small>shared / asked</small>',r=>{ const ex=r.trip.extras||[]; let a=0,b=0; ex.forEach(id=>{ const d=r.dec[id]; if(d){ a+=d.shared.length; b+=d.asked; } }); return `<td class="g-num">${a}/${b}</td>`; })}${row('Helmi could read',r=>`<td class="g-num">${(r.trip.conn||[]).length} of ${r.trip.nsrc||'–'}</td>`,'g-sep')}${row('Helmi decides',r=>`<td>${esc({ask:'Asks every time',suggest:'Suggests',auto:'Follows rules'}[r.trip.auto]||'–')}${r.trip.autoDone?`<small>answered ${r.trip.autoDone} by rules</small>`:''}</td>`)}${row('Rules set',r=>`<td class="g-num">${Object.keys(r.trip.rules||{}).length}</td>`)}${row('Messages sent',r=>`<td class="g-num">${Object.values(r.trip.chats||{}).reduce((a,v)=>a+v,0)}</td>`)}${row('Times explaining',r=>`<td class="g-num">${r.trip.e}</td>`,'g-sep')}
     ${row('Minutes arranging',r=>`<td class="g-num">${r.trip.m}</td>`)}
     ${row('Things went wrong',r=>`<td class="g-num">${r.trip.r}</td>`)}
     ${row('Rows businesses could reach',r=>`<td class="g-num">${fmt(r.trip.rows)}</td>`)}
+    ${row('Insurance paid for the accident',r=>`<td class="g-num ${r.trip.paid===0?'g-bad':''}">${r.trip.paid!=null?r.trip.paid+' €':'–'}</td>`)}
     ${row('Rows taken in the break-in',r=>`<td class="g-num ${r.trip.leak?'g-bad':''}">${fmt(r.trip.leak)}</td>`)}
     ${row('Felt in control (1 to 5)',r=>`<td class="g-num">${r.control||'–'}</td>`)}
    </tbody></table></div>
@@ -2384,6 +2574,401 @@ document.addEventListener('click',async e=>{ const g=e.target.closest('[data-g]'
   if(g.dataset.g==='clear'){ if(!confirm('Remove all trips from this screen?')) return; GR=[]; gSave(); renderGroup(); return; }
   if(g.dataset.g==='add'){ const texts=[$('g-paste').value||'']; for(const f of [...($('g-file').files||[])]){ try{ if(/\.xlsx$/i.test(f.name)){ await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}); wb.SheetNames.forEach(n=>texts.push(XLSX.utils.sheet_to_csv(wb.Sheets[n]))); } else texts.push(await f.text()); }catch(err){} }
     const n=texts.reduce((a,t)=>a+gAdd(t),0); renderGroup(); const m=$('g-msg'); if(m) m.textContent=n+' trip'+(n===1?'':'s')+' added.'; } });
+
+const TripFilm=(function(){
+/* Cut-paper animation engine. Deterministic: renderAt(seconds) draws one frame. */
+const FPS = 24;
+const FLOOR = 820;
+const C = {
+  wall:'#f1e3c8', wall2:'#e9d5b0', floor:'#c9a27a', floor2:'#b88f66', ink:'#2a2420', cream:'#fff8ec',
+  teal:'#2f7f7a', teal2:'#245f5b', mustard:'#e2a33b', coral:'#df6a4f', navy:'#2c3e5c', navy2:'#1f2d45',
+  sky:'#bcd6e3', snow:'#ffffff', green:'#3f8f5a', red:'#b8432f', grey:'#8d8a84', paper:'#fbf4e6',
+  skinA:'#eab894', skinE:'#c48a63', skinS1:'#8d5a3b', skinS2:'#f0c7a4', hairA:'#4a2e1f', hairE:'#7d3519', lab:'#e1b46f', lab2:'#c99a52'
+};
+let FRAME = 0, T = 0;
+/* ---------- helpers ---------- */
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,u)=>a+(b-a)*u;
+const ease=u=>{u=clamp(u); return u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;};
+const prog=(t,a,b)=>clamp((t-a)/(b-a));
+function hash(s){let h=2166136261; for(let i=0;i<s.length;i++){h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return ((h>>>0)%10000)/10000;}
+/* stop-motion boil: small offsets that change every 2 frames */
+function boil(id,amt=1){return '';} /* stop-motion jitter removed: calmer to watch */
+const G=(tr,inner,extra='')=>`<g transform="${tr}" ${extra}>${inner}</g>`;
+const cut=(id,inner,tr='')=>`<g transform="${tr} ${boil(id)}" filter="url(#sh)">${inner}</g>`;
+const R=(x,y,w,h,f,rx=0,extra='')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${f}" ${extra}/>`;
+const Ci=(x,y,r,f,extra='')=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${f}" ${extra}/>`;
+const P=(d,f,extra='')=>`<path d="${d}" fill="${f}" ${extra}/>`;
+const L=(x1,y1,x2,y2,s,w=6,extra='')=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${s}" stroke-width="${w}" stroke-linecap="round" ${extra}/>`;
+const Tx=(x,y,s,txt,f=C.ink,w=700,anchor='middle',extra='')=>`<text x="${x}" y="${y}" font-size="${s}" font-weight="${w}" fill="${f}" text-anchor="${anchor}" font-family="Archivo, 'Helvetica Neue', Arial, sans-serif" ${extra}>${txt}</text>`;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+/* ---------- sets ---------- */
+function room(wall=C.wall,floor=C.floor){return R(-200,-200,2320,FLOOR+200,wall)+R(-200,FLOOR,2320,500,floor)+R(-200,FLOOR-14,2320,18,C.floor2);}
+function windowSnow(x,y,w,h,t){let s=R(x-14,y-14,w+28,h+28,C.cream,6)+R(x,y,w,h,'#9fc3d6')+R(x,y+h*.72,w,h*.28,'#e9f2f6');
+  // distant roofs
+  s+=P(`M${x} ${y+h*.75} l${w*.2} -${h*.18} l${w*.2} ${h*.12} l${w*.25} -${h*.22} l${w*.35} ${h*.2} v${h*.1} h-${w} z`,'#7f9fb0');
+  for(let i=0;i<26;i++){const sx=x+((hash('sx'+i)*w + t*14*(0.5+hash('sv'+i)))%w); const sy=y+((hash('sy'+i)*h + t*60*(0.6+hash('sw'+i)))%h); s+=Ci(sx.toFixed(1),sy.toFixed(1),3+hash('sr'+i)*3,'#fff');}
+  s+=R(x+w/2-5,y,10,h,C.cream)+R(x,y+h/2-5,w,10,C.cream);
+  return cut('win'+x,s);}
+function sign(x,y,w,h,txt,sub,bg=C.navy,fg='#fff'){return cut('sign'+x+y,R(x,y,w,h,bg,10)+Tx(x+w/2,y+h/2+(sub?-4:12),sub?34:38,esc(txt),fg)+(sub?Tx(x+w/2,y+h/2+34,22,esc(sub),fg,500):''));}
+function clock(x,y,hh,mm,r=56){const ha=((hh%12)+mm/60)*30, ma=mm*6;
+  return cut('clock'+x,Ci(x,y,r+8,C.ink)+Ci(x,y,r,C.cream)+[0,90,180,270].map(a=>L(x+Math.sin(a*Math.PI/180)*(r-10),y-Math.cos(a*Math.PI/180)*(r-10),x+Math.sin(a*Math.PI/180)*(r-4),y-Math.cos(a*Math.PI/180)*(r-4),C.ink,4)).join('')+
+   L(x,y,x+Math.sin(ha*Math.PI/180)*r*.5,y-Math.cos(ha*Math.PI/180)*r*.5,C.ink,8)+L(x,y,x+Math.sin(ma*Math.PI/180)*r*.8,y-Math.cos(ma*Math.PI/180)*r*.8,C.ink,5)+Ci(x,y,6,C.coral)
+   +Tx(x,y+r+40,26,`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`,C.ink,700));}
+function desk(x,w,h,col=C.teal,top=C.cream){return cut('desk'+x+h,R(x,FLOOR-h,w,h,col,4)+R(x-12,FLOOR-h-16,w+24,20,top,4)+R(x+20,FLOOR-h+30,w-40,8,'rgba(0,0,0,.12)'));}
+function plant(x){return cut('plant'+x,R(x-30,FLOOR-80,60,80,C.coral,6)+P(`M${x} ${FLOOR-80} q-60 -60 -30 -140 q20 60 30 140 q10 -110 50 -150 q-10 90 -50 150z`,C.green));}
+function door(x,label,open=0){return cut('door'+x,R(x-10,FLOOR-430,200,430,C.cream,4)+R(x,FLOOR-420,180,420,open?C.ink:'#a5714a',2)+(open?'':Ci(x+150,FLOOR-210,9,C.mustard))+(label?R(x+40,FLOOR-480,100,40,C.navy,6)+Tx(x+90,FLOOR-451,24,label,'#fff'):''));}
+function lift(x){return cut('lift'+x,R(x,FLOOR-430,190,430,'#9aa3a8',4)+R(x+8,FLOOR-422,84,422,'#b9c1c5')+R(x+98,FLOOR-422,84,422,'#b9c1c5')+Ci(x+215,FLOOR-230,12,C.mustard)+Tx(x+95,FLOOR-450,26,'LIFT',C.ink));}
+function steps(x,n=2,w=420,stepH=46){let s=''; for(let i=0;i<n;i++) s+=R(x+i*0,FLOOR-(i+1)*stepH,w-i*0,stepH,i%2?C.floor2:'#a87d55'); return cut('steps'+x,s);}
+function table(x,y=FLOOR,top=C.cream){return cut('tab'+x+y,R(x-110,y-170,220,22,top,6)+R(x-10,y-150,20,150,C.ink)+R(x-60,y-8,120,10,C.ink,4)+Ci(x-30,y-185,14,'#fff')+R(x+20,y-205,12,30,C.coral,3));}
+function bed(x,h){return cut('bed'+x+h,R(x,FLOOR-h,420,h-30,'#f6efe2',10)+R(x,FLOOR-h-10,420,30,'#cfe3e6',10)+R(x+10,FLOOR-h-46,110,40,'#fff',16)+R(x-14,FLOOR-h-130,26,h+130,'#a5714a',6)+R(x+20,FLOOR-30,20,30,C.ink)+R(x+380,FLOOR-30,20,30,C.ink));}
+function shower(x){let s=R(x,FLOOR-520,330,520,'#dfeef0'); for(let i=0;i<6;i++) for(let j=0;j<8;j++) s+=R(x+i*55+4,FLOOR-520+j*65+4,47,57,'#cfe5e8',3);
+  s+=L(x+250,FLOOR-500,x+250,FLOOR-420,'#8a9599',10)+P(`M${x+215} ${FLOOR-420} h70 l-10 18 h-50z`,'#8a9599')+R(x+40,FLOOR-280,120,16,'#8a9599',4)+R(x+40,FLOOR-264,12,60,'#8a9599')+L(x+190,FLOOR-330,x+300,FLOOR-330,C.mustard,10);
+  return cut('shower'+x,s);}
+function bathtub(x){return cut('tub'+x,R(x,FLOOR-520,330,520,'#dfeef0')+R(x-20,FLOOR-170,370,170,'#ffffff',24)+R(x-20,FLOOR-170,370,24,'#e7eef0',12)+L(x+40,FLOOR-260,x+140,FLOOR-260,'#8a9599',10)+Tx(x+165,FLOOR-60,30,'BATHTUB',C.grey));}
+function tablet(x,y,w,img,tilt=0){const h=w*0.72; return cut('tablet'+x,G(`rotate(${tilt} ${x+w/2} ${y+h/2})`,R(x-12,y-12,w+24,h+24,C.ink,18)+`<image href="${IMG[img]}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMin slice"/>`));}
+function clipboard(x,y,lines){return cut('clip'+x,R(x,y,260,330,'#a5714a',10)+R(x+18,y+30,224,282,'#fff',4)+R(x+90,y-12,80,32,'#8a9599',6)+lines.map((l,i)=>Tx(x+30,y+80+i*44,i?24:26,esc(l),C.ink,i?500:700,'start')).join(''));}
+function bubble(x,y,w,txt,size=34,tail='left'){const lines=Array.isArray(txt)?txt:[txt]; const h=40+lines.length*size*1.25;
+  return cut('bub'+x+y,R(x,y,w,h,'#fff',26)+(tail==='left'?P(`M${x+50} ${y+h-2} l-10 40 l50 -40z`,'#fff'):P(`M${x+w-60} ${y+h-2} l10 40 l-50 -40z`,'#fff'))+lines.map((l,i)=>Tx(x+w/2,y+20+size+i*size*1.25,size,esc(l),C.ink,700)).join(''));}
+function lockIcon(x,y,open,s=1){return G(`translate(${x} ${y}) scale(${s})`,(open?P('M-14 -6 v-16 a14 14 0 0 1 28 0','none',`stroke="${C.green}" stroke-width="7" transform="translate(-16 -2)"`):P('M-14 -6 v-14 a14 14 0 0 1 28 0 v14','none',`stroke="${C.ink}" stroke-width="7"`))+R(-22,-8,44,36,open?C.green:C.ink,6));}
+
+/* ---------- characters ---------- */
+function head(x,y,skin,hair,style,face='smile',r=46){let s='';
+  if(style==='long') s+=P(`M${x-r-6} ${y-6} q0 -${r+16} ${r+6} -${r+16} q${r+6} 0 ${r+6} ${r+16} v${r*1.9} h-${2*r+12}z`,hair);
+  if(style==='bob') s+=P(`M${x-r-8} ${y+8} q0 -${r+22} ${r+8} -${r+22} q${r+8} 0 ${r+8} ${r+22} v${r*.9} h-${2*r+16}z`,hair);
+  s+=Ci(x,y,r,skin);
+  if(style==='bob') s+=P(`M${x-r-4} ${y-4} q${r*.4} -${r*1.25} ${r*1.6} -${r*.85} q-${r*.6} ${r*.2} -${r*1.2} ${r*.9}z`,hair);
+  if(style==='long') s+=P(`M${x-r} ${y-8} q${r} -${r*1.3} ${2*r} 0 q-${r*.8} -${r*.5} -${2*r} 0z`,hair);
+  if(style==='short') s+=P(`M${x-r} ${y-6} q0 -${r+10} ${r} -${r+10} q${r} 0 ${r} ${r+10} q-${r*.5} -${r*.4} -${r} -${r*.35} q-${r*.6} 0 -${r} ${r*.35}z`,hair);
+  if(style==='bun') s+=Ci(x-r*.6,y-r*.9,r*.45,hair)+P(`M${x-r} ${y-4} q0 -${r+8} ${r} -${r+8} q${r} 0 ${r} ${r+8} q-${r} -${r*.5} -${2*r} 0z`,hair);
+  s+=Ci(x+r*.35,y-4,5,C.ink);
+  if(face==='smile') s+=P(`M${x+r*.12} ${y+16} q${r*.25} ${r*.22} ${r*.5} 0`,'none',`stroke="${C.ink}" stroke-width="4" stroke-linecap="round"`);
+  else if(face==='flat') s+=L(x+r*.15,y+20,x+r*.55,y+18,C.ink,4);
+  else if(face==='sad') s+=P(`M${x+r*.12} ${y+24} q${r*.25} -${r*.18} ${r*.5} 0`,'none',`stroke="${C.ink}" stroke-width="4" stroke-linecap="round"`);
+  s+=Ci(x+r*.35,y+10,7,'rgba(223,106,79,.35)');
+  return s;}
+/* Aino in her wheelchair, facing right. (x,y)=ground under big wheel. */
+function aino(x,y,o={}){const s=o.s||1, roll=o.roll||0, arm=o.arm||'rest', face=o.face||'smile', id=o.id||'aino';
+  let w=''; const wy=-108;
+  // chair back + seat
+  w+=R(-78,-330,20,170,C.teal2,6)+R(-70,-196,170,20,C.ink,6);
+  // body: thighs, shins, shoes
+  w+=R(-55,-238,160,46,C.navy,20)+R(80,-230,44,150,C.navy,18)+R(84,-92,70,26,C.ink,12);
+  // torso
+  w+=R(-62,-410,92,190,C.mustard,34);
+  // arm
+  if(arm==='phone') w+=L(-20,-370,44,-290,C.mustard,30)+L(44,-290,92,-340,C.skinA,22)+R(80,-392,44,74,C.ink,8)+R(85,-386,34,60,'#9fd0d8',4);
+  else if(arm==='up') w+=L(-20,-370,40,-300,C.mustard,30)+L(40,-300,110,-330,C.skinA,22);
+  else if(arm==='lap') w+=L(-20,-370,30,-290,C.mustard,30)+L(30,-290,90,-250,C.skinA,22);
+  else w+=L(-20,-370,0,-250,C.mustard,30)+L(0,-250,20,-170,C.skinA,22);
+  w+=head(-14,-462,C.skinA,C.hairA,'bob',face,48);
+  // wheel
+  let sp=''; for(let i=0;i<8;i++){const a=roll+i*Math.PI/4; sp+=L(0,wy,Math.cos(a)*92,wy+Math.sin(a)*92,'#6b6560',4);}
+  w+=`<circle cx="0" cy="${wy}" r="104" fill="none" stroke="${C.ink}" stroke-width="14"/><circle cx="0" cy="${wy}" r="88" fill="none" stroke="#8a9599" stroke-width="5"/>`+sp+Ci(0,wy,14,C.ink);
+  w+=L(40,-176,128,-60,C.ink,10)+Ci(128,-26,26,C.ink)+Ci(128,-26,10,'#8a9599');
+  return cut(id,w,`translate(${x} ${y}) scale(${s})`);}
+/* standing person facing right (dir=1) or left (dir=-1). */
+function person(x,y,o={}){const s=o.s||1, dir=o.dir||1, id=o.id||('p'+x), skin=o.skin||C.skinS2, hair=o.hair||C.ink, style=o.style||'short', top=o.top||C.navy, legs=o.legs||C.ink, arm=o.arm||'down', face=o.face||'smile', walk=o.walk||0;
+  let w=''; const sw=Math.sin(walk)*22;
+  if(o.seated){ w+=R(-40,-250,170,44,legs,18)+R(96,-240,40,240,legs,14)+R(96,-22,70,22,C.ink,8); w+=R(-48,-470,96,240,top,38); }
+  else { w+=R(-30+sw*.5,-250,30,250,legs,12)+R(4-sw*.5,-250,30,250,legs,12)+R(-36+sw*.5,-20,46,22,C.ink,8)+R(-2-sw*.5,-20,46,22,C.ink,8);
+  w+=R(-48,-470,96,240,top,38); }
+  if(o.badge) w+=R(10,-420,30,20,'#fff',3);
+  const A={down:[-10,-440,-6,-320,0,-240],desk:[10,-440,60,-350,120,-360],phone:[10,-440,50,-360,70,-430],point:[10,-440,90,-400,160,-430],hold:[10,-440,60,-360,100,-360],wave:[10,-440,60,-500,70,-580],harness:[10,-440,40,-370,70,-300],elbow:[10,-440,50,-350,50,-300]}[arm]||[-10,-440,-6,-320,0,-240];
+  w+=L(A[0],A[1],A[2],A[3],top,28)+L(A[2],A[3],A[4],A[5],skin,20);
+  if(arm==='phone') w+=R(A[4]-6,A[5]-46,36,62,C.ink,7);
+  if(arm==='hold'&&o.holdItem) w+=o.holdItem;
+  w+=head(4,-522,skin,hair,style,face,46);
+  if(o.earbud) w+=Ci(-12,-516,7,'#fff');
+  return cut(id,w,`translate(${x} ${y}) scale(${s*dir} ${s})`);}
+/* Kide the guide dog. facing right. lying=true for lying down */
+function kide(x,y,o={}){const s=o.s||1, walk=o.walk||0, lying=o.lying, id=o.id||'kide', dir=o.dir||1; let w='';
+  if(lying){ w+=P('M-130 -10 q0 -70 120 -70 q90 0 110 50 l0 20z',C.lab)+Ci(120,-70,40,C.lab)+P('M140 -70 q40 0 50 18 q-14 16 -50 10z',C.lab)+Ci(186,-58,8,C.ink)+P('M98 -96 q-20 10 -10 52 q16 -16 22 -44z',C.lab2)+Ci(132,-80,5,C.ink)+P('M-130 -20 q-50 0 -70 -14','none',`stroke="${C.lab}" stroke-width="14" stroke-linecap="round"`); }
+  else { const a=Math.sin(walk)*16;
+    w+=R(-110+a*.6,-120,24,120,C.lab2,10)+R(-70-a*.6,-120,24,120,C.lab,10)+R(60+a*.6,-120,24,120,C.lab2,10)+R(96-a*.6,-120,24,120,C.lab,10);
+    w+=P('M-130 -110 q0 -70 120 -70 h110 q50 0 50 60 v20 h-280z',C.lab)+Ci(170,-190,44,C.lab)+P('M196 -192 q46 2 54 24 q-16 18 -54 10z',C.lab)+Ci(246,-176,9,C.ink)+P('M146 -222 q-22 10 -12 56 q18 -18 24 -48z',C.lab2)+Ci(184,-202,6,C.ink)+P('M-130 -150 q-50 -10 -64 -50','none',`stroke="${C.lab}" stroke-width="16" stroke-linecap="round"`);
+    // harness
+    w+=R(-20,-186,130,26,C.coral,8)+R(70,-200,22,70,C.coral,6)+L(-10,-178,-60,-300,C.ink,8); }
+  return cut(id,w,`translate(${x} ${y}) scale(${s*dir} ${s})`);}
+/* Elina with harness hand (left) and phone/other arm */
+function elina(x,y,o={}){return person(x,y,Object.assign({id:'elina',skin:C.skinE,hair:C.hairE,style:'long',top:C.teal,legs:C.navy,earbud:true},o));}
+function staff(x,y,o={}){return person(x,y,Object.assign({top:C.navy,badge:true},o));}
+/* big phone close-up with real app screen */
+function bigPhone(cx,cy,img,o={}){const w=o.w||410, h=w*2.05, x=cx-w/2, y=cy-h/2; let s='';
+  s+=R(x-22,y-22,w+44,h+44,C.ink,58)+`<clipPath id="pc${cx}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="36"/></clipPath>`;
+  s+=`<g clip-path="url(#pc${cx})">${R(x,y,w,h,'#fff')}<image href="${IMG[img]}" x="${x}" y="${y}" width="${w}" height="${w*1600/780}" preserveAspectRatio="xMidYMin slice"/>${o.overlay||''}</g>`;
+  s+=R(cx-60,y-8,120,14,'#3a332e',7);
+  return cut('phone'+cx,s,o.tr||'');}
+function thumb(x,y,press){return cut('thumb',P(`M${x} ${y+(press?6:0)} q-30 10 -40 90 q-10 120 30 200 h170 q20 -140 -40 -230 q-40 -60 -120 -60z`,C.skinA)+P(`M${x-6} ${y+(press?6:0)} q-14 4 -18 36 q24 10 46 -6 q0 -30 -28 -30z`,'#f5d2b6'),'');}
+function ripple(x,y,t){let s=''; for(let i=0;i<3;i++){const u=((t*0.45+i/3)%1); s+=`<circle cx="${x}" cy="${y}" r="${30+u*120}" fill="none" stroke="${C.teal}" stroke-width="${6*(1-u)+1}" opacity="${(1-u).toFixed(2)}"/>`;} return s;}
+/* title cards */
+function titleCard(lines,t,bg=C.teal,fg='#fff',sub){let s=R(-200,-200,2320,1480,bg);
+  lines.forEach((ln,li)=>{const chars=[...ln]; const total=chars.length; const startX=960-total*34; chars.forEach((ch,i)=>{const u=ease(prog(t,0.1+i*0.03+li*0.3,0.9+i*0.03+li*0.3)); if(ch===' ')return;
+    s+=G(`translate(${startX+i*68+34} ${470+li*130-(1-u)*60}) rotate(${(hash('r'+i+li)-.5)*3})`,R(-30,-62,60,84,C.cream,6,`filter="url(#sh)"`)+Tx(0,4,64,esc(ch),bg,800),`opacity="${u}"`);});});
+  if(sub) s+=Tx(960,840,40,esc(sub),fg,600,'middle',`opacity="${ease(prog(t,1.6,2.4))}"`);
+  return s;}
+function rewindFx(t){let s=''; for(let i=0;i<8;i++){const y=((i*135+t*520)%1080); s+=R(-20,y,1960,3,'rgba(255,255,255,.45)');}
+  s+=G('translate(190 140)',P('M0 -40 l-50 40 l50 40z M-56 -40 l-50 40 l50 40z','#fff','opacity=".85"'));
+  return s;}
+function labelTag(txt,good){if(window.__noLabel) return ''; return G('translate(70 70)',R(0,0,txt.length*22+70,70,good?C.green:'#5c5852',35,`filter="url(#sh)"`)+Ci(38,35,12,'#fff')+Tx(62,48,34,esc(txt),'#fff',800,'start'));}
+
+/* ---------- player ---------- */
+let SCENES=[], CAPS=[], DURATION=0, GREYS=[];
+function film(def){SCENES=def.scenes; DURATION=def.duration; CAPS=[];
+  SCENES.forEach(sc=>{ if(!sc.say) return; const words=sc.say.split(' '); const chunks=[]; let cur=[];
+    words.forEach((wd,i)=>{cur.push(wd); const left=words.length-1-i; const endS=/[.!?]["”]?$/.test(wd), endC=/[,;:]$/.test(wd);
+      if(left===0) return; if((endS&&cur.length>=4)||(endC&&cur.length>=10)||cur.length>=16){ if(left<4&&!endS){return;} chunks.push(cur.join(' ')); cur=[];}});
+    if(cur.length){ if(cur.length<3&&chunks.length) chunks[chunks.length-1]+=' '+cur.join(' '); else chunks.push(cur.join(' ')); }
+    const a=sc.from+(sc.sayDelay||0.4), b=sc.sayEnd?sc.from+sc.sayEnd:sc.to-0.3, total=words.length; let acc=0;
+    chunks.forEach(ch=>{const n=ch.split(' ').length; CAPS.push({from:a+(b-a)*acc/total,to:a+(b-a)*(acc+n)/total,text:ch}); acc+=n;});
+    if(sc.helmi){ const H=sc.helmi, ss=H.text.match(/[^.:]+[.:]/g)||[H.text], tw=H.text.split(' ').length; let ac=0; const h0=sc.from+H.at, h1=sc.from+H.end;
+      const grp=[]; let cur=''; ss.forEach(x=>{ if((cur+x).split(' ').length>14&&cur){ grp.push(cur.trim()); cur=x; } else cur+=x; }); if(cur.trim()) grp.push(cur.trim());
+      grp.forEach(g=>{ const n=g.split(' ').length; CAPS.push({from:h0+(h1-h0)*ac/tw,to:h0+(h1-h0)*(ac+n)/tw,text:'Helmi: '+g}); ac+=n; }); } });
+  CAPS.sort((x,y)=>x.from-y.from);
+}
+function renderAt(t){T=t; FRAME=Math.floor(t*FPS+1e-6); if(playing) window.__filmMax=Math.max(window.__filmMax||0,t);
+  const sc=SCENES.find(s=>t>=s.from&&t<s.to)||SCENES[SCENES.length-1];
+  const lt=t-sc.from, d=sc.to-sc.from;
+  let inner=sc.draw(lt,d);
+  const grey=sc.grey?'url(#grey)':'none';
+  // quick paper wipe in first 0.25s of each scene
+  const wipe=lt<0.5&&!sc.noWipe?R(-10,-10,1940,1100,C.paper,0,`opacity="${(1-ease(lt/0.5)).toFixed(3)}"`):'';
+  document.getElementById('world').innerHTML=`<g filter="${grey}">${inner}</g>${wipe}`;
+  const cap=CAPS.find(c=>t>=c.from&&t<c.to);
+  const ce=document.getElementById('cap'); ce.textContent=cap?cap.text:''; ce.style.opacity=cap?1:0;
+  const pr=document.getElementById('prog'); if(pr) pr.value=t;
+  const tm=document.getElementById('tm'); if(tm) tm.textContent=fmtT(t)+' / '+fmtT(DURATION);
+}
+const fmtT=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+window.renderAt=renderAt;
+let playing=false, t0=0, tStart=0, raf=null;
+function loop(){ if(!playing) return; let t=tStart+(performance.now()-t0)/1000; if(t>=DURATION){t=DURATION-0.001; stop();}
+  const ft=Math.floor(t*FPS)/FPS; if(ft!==T) renderAt(ft); raf=requestAnimationFrame(loop);}
+function play(){ if(playing) return; const au=document.getElementById('music'); if(T>=DURATION-0.05) T=0; playing=true; tStart=T; t0=performance.now(); if(au){au.currentTime=T; au.play().catch(()=>{});} document.getElementById('pp').textContent='Pause'; document.getElementById('pp').setAttribute('aria-label','Pause'); loop();}
+function stop(){ playing=false; cancelAnimationFrame(raf); const au=document.getElementById('music'); if(au) au.pause(); document.getElementById('pp').textContent='Play'; document.getElementById('pp').setAttribute('aria-label','Play');}
+function initPlayer(){
+  const pp=document.getElementById('pp'), pr=document.getElementById('prog');
+  pr.max=DURATION; pp.onclick=()=>playing?stop():play();
+  pr.oninput=()=>{const was=playing; stop(); renderAt(+pr.value); if(was) play();};
+  document.getElementById('cc').onchange=e=>document.getElementById('cap').hidden=!e.target.checked;
+  const seek=d=>{const was=playing; stop(); renderAt(Math.max(0,Math.min(DURATION,T+d))); if(was) play();};
+  const wrap=document.querySelector('.wrap');
+  const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+  const fsBtn=document.getElementById('fs');
+  const setFsLabel=()=>{const on=!!fsEl()||wrap.classList.contains('pfs'); const sm=document.body.classList.contains('embed')&&innerWidth<560; fsBtn.textContent=sm?(on?'✕':'⛶'):(on?'Exit full screen':'Full screen'); fsBtn.setAttribute('aria-label',on?'Exit full screen':'Full screen'); fsBtn.setAttribute('aria-pressed',on);};
+  const toggleFs=()=>{ if(fsEl()){ (document.exitFullscreen||document.webkitExitFullscreen).call(document); return; }
+    if(wrap.classList.contains('pfs')){ wrap.classList.remove('pfs'); setFsLabel(); return; }
+    const rq=wrap.requestFullscreen||wrap.webkitRequestFullscreen;
+    if(rq){ try{ const r=rq.call(wrap); if(r&&r.catch) r.catch(()=>{wrap.classList.add('pfs'); setFsLabel();}); }catch(_){ wrap.classList.add('pfs'); setFsLabel(); } }
+    else { wrap.classList.add('pfs'); setFsLabel(); } };
+  fsBtn.onclick=toggleFs; setTimeout(setFsLabel,0); addEventListener('resize',setFsLabel); document.addEventListener('fullscreenchange',setFsLabel); document.addEventListener('webkitfullscreenchange',setFsLabel);
+  document.getElementById('back').onclick=()=>seek(-10); document.getElementById('fwd').onclick=()=>seek(10);
+  document.querySelector('.stage').addEventListener('dblclick',toggleFs);
+  document.querySelector('.stage').addEventListener('click',()=>{ playing?stop():play(); });
+  document.addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'&&e.target.type!=='range') return;
+    if(e.key===' '&&(e.target===document.body||e.target.classList.contains('stage'))){e.preventDefault(); playing?stop():play();}
+    else if(e.key==='ArrowRight'&&e.target.type!=='range'){e.preventDefault(); seek(5);}
+    else if(e.key==='ArrowLeft'&&e.target.type!=='range'){e.preventDefault(); seek(-5);}
+    else if(e.key==='f'||e.key==='F'){toggleFs();}
+    else if(e.key==='Escape'&&wrap.classList.contains('pfs')){wrap.classList.remove('pfs'); setFsLabel();} });
+  renderAt(0);
+  if(location.hash==='#capture') document.body.classList.add('capture');
+  if(location.hash==='#embed') document.body.classList.add('embed');
+}
+/* phone geometry helpers: map image pixel (of 780x1600 capture) to stage coords */
+function phonePt(cx,cy,w,ix,iy){const h=w*2.05; return [cx-w/2+ix*w/780, cy-h/2+iy*w/780];}
+function offSwitch(cx,cy,w,iy){const [x,y]=phonePt(cx,cy,w,666,iy); const k=w/780; return R(x-60*k,y-36*k,120*k,72*k,'#f4f4f2',8*k)+R(x-52*k,y-32*k,104*k,64*k,'#b9b9b2',32*k)+Ci(x-20*k,y,26*k,'#fff');}
+function tapSeq(cx,cy,w,ys,t,t0,step){ // returns {overlay, thumb}
+  let ov='', th=''; const i=Math.floor((t-t0)/step);
+  ys.forEach((y,j)=>{ if(j>=i) ov+=offSwitch(cx,cy,w,y); });
+  if(i>=0&&i<ys.length){ const [x,y]=phonePt(cx,cy,w,668,ys[i]); th=thumb(x+4,y+4,((t-t0)/step)%1<.45); }
+  return {ov,th};}
+
+function chair(x){return cut('chair'+x,R(x-70,FLOOR-210,190,26,'#a5714a',8)+R(x-80,FLOOR-440,26,256,'#a5714a',8)+R(x-60,FLOOR-190,16,190,'#7d5536')+R(x+90,FLOOR-190,16,190,'#7d5536'));}
+
+/* Extra characters and props for the Sanna and Laura films */
+C.skinSa='#ecc29f'; C.hairSa='#c99a3f'; C.skinL='#b97c55'; C.hairL='#2a1d17';
+function sanna(x,y,o={}){return person(x,y,Object.assign({id:'sanna',skin:C.skinSa,hair:C.hairSa,style:'bob',top:C.coral,legs:C.navy},o));}
+function laura(x,y,o={}){return person(x,y,Object.assign({id:'laura',skin:C.skinL,hair:C.hairL,style:'bun',top:C.green,legs:'#3b3f5c'},o));}
+/* baby bundle, held against the chest (person-local coords) */
+const babyHeld=(sk='#f2c9a5')=>R(20,-450,110,90,'#f4d35e',40)+Ci(96,-462,30,sk)+P('M70 -480 q26 -30 54 0z','#7fb3d5')+Ci(106,-466,4,C.ink);
+/* pushchair facing right; (x,y) = ground under it */
+function pram(x,y,o={}){const s=o.s||1, roll=o.roll||0, id=o.id||'pram', tilt=o.tilt||0; let w='';
+  const wheel=(cx)=>{let sp=''; for(let i=0;i<6;i++){const a=roll+i*Math.PI/3; sp+=L(cx,-40,cx+Math.cos(a)*30,-40+Math.sin(a)*30,'#6b6560',3);} return `<circle cx="${cx}" cy="-40" r="38" fill="none" stroke="${C.ink}" stroke-width="10"/>`+sp+Ci(cx,-40,8,C.ink);};
+  w+=L(-80,-40,-20,-150,C.ink,8)+L(90,-40,20,-150,C.ink,8)+L(-150,-330,-40,-170,C.ink,9)+R(-176,-350,56,22,C.ink,10);
+  w+=P('M-110 -250 h240 q0 110 -120 110 q-120 0 -120 -110z',C.navy)+R(-116,-262,252,26,C.navy2,12);
+  if(o.baby!==false) w+=Ci(70,-262,30,o.skin||'#f2c9a5')+P('M44 -276 q26 -34 54 0z','#7fb3d5')+Ci(82,-266,4,C.ink);
+  w+=P('M-112 -258 q10 -120 120 -120 v120z',C.teal2);
+  w+=wheel(-80)+wheel(90);
+  return cut(id,w,`translate(${x} ${y}) rotate(${tilt}) scale(${s})`);}
+function laptop(x,y,s=1){return cut('lap'+x,G(`translate(${x} ${y}) scale(${s})`,R(-70,-90,140,90,'#3a3f45',8)+R(-62,-84,124,76,'#9fd0d8',4)+R(-84,-4,168,12,'#55595e',5)));}
+function cot(x){let s=R(x,FLOOR-330,360,24,'#c9a27a',8)+R(x,FLOOR-140,360,24,'#c9a27a',8)+R(x+10,FLOOR-180,340,40,'#fff',10)+R(x-12,FLOOR-360,24,360,'#a5714a',6)+R(x+348,FLOOR-360,24,360,'#a5714a',6);
+  for(let i=1;i<8;i++) s+=R(x+i*45-5,FLOOR-310,10,175,'#c9a27a',4);
+  return cut('cot'+x,s);}
+function fridgeKettle(x){return cut('fridge'+x,R(x,FLOOR-300,220,300,'#e9eef0',14)+R(x+10,FLOOR-290,200,8,'#cfd8dc')+R(x+180,FLOOR-230,12,70,'#8a9599',5)
+  +R(x+40,FLOOR-380,90,80,'#2f7f7a',20)+R(x+120,FLOOR-360,30,14,'#2f7f7a',6)+R(x+70,FLOOR-396,30,18,C.ink,6));}
+function iceMachine(x){return cut('ice'+x,R(x,FLOOR-380,200,380,'#b9c1c5',10)+R(x+30,FLOOR-330,140,110,'#8fa3ad',8)+Tx(x+100,FLOOR-260,40,'ICE','#fff',800));}
+function nightWin(x,y,w,h){return cut('nw'+x,R(x-14,y-14,w+28,h+28,C.cream,6)+R(x,y,w,h,'#1f2d45')+Ci(x+w*.72,y+h*.3,34,'#f4e3a1')+Ci(x+w*.72+14,y+h*.3-8,30,'#1f2d45')+[0,1,2,3,4].map(i=>Ci(x+20+i*w/5,y+20+(i%2)*40,3,'#fff')).join(''));}
+function highChair(x){return cut('hc'+x,L(x-60,FLOOR,x-20,FLOOR-330,'#a5714a',10)+L(x+60,FLOOR,x+20,FLOOR-330,'#a5714a',10)+R(x-70,FLOOR-360,140,30,'#e2a33b',10)+R(x-60,FLOOR-480,22,130,'#e2a33b',8)+R(x-80,FLOOR-400,170,16,'#fff',8));}
+function playArea(x){return cut('play'+x,R(x,FLOOR-160,420,160,'#f6d7a7',16)+R(x+30,FLOOR-110,70,70,C.coral,8)+R(x+120,FLOOR-90,60,60,C.teal,8)+Ci(x+250,FLOOR-60,40,C.mustard)+R(x+310,FLOOR-130,70,90,'#7a5a9a',8)+Tx(x+210,FLOOR-180,30,'PLAY AREA',C.ink,800));}
+function trainSide(stepsDoor){let s=R(-200,FLOOR-40,2320,400,'#9aa0a6')+R(-200,FLOOR-40,2320,20,C.mustard);
+  s+=cut('car',R(-100,120,2120,FLOOR-180,'#e9eef0',30)+R(-100,FLOOR-240,2120,40,'#2c3e5c')+[0,1,2,3].map(i=>R(60+i*480,220,300,180,'#9fc3d6',18)).join('')
+    +R(1180,190,240,FLOOR-250,'#cfd8dc',10)+R(1190,200,220,FLOOR-270,'#b9c1c5',8)+Tx(1300,170,32,stepsDoor?'CAR 6':'CAR 2',C.ink,800));
+  if(stepsDoor) s+=cut('tsteps',R(1180,FLOOR-60,240,30,'#55595e',4)+R(1200,FLOOR-30,200,30,'#55595e',4));
+  else s+=cut('tramp',P(`M1180 ${FLOOR-60} h240 l40 60 h-320z`,'#55595e')+Ci(1300,FLOOR-140,40,'#2c78c4')+P(`M1282 ${FLOOR-156} h36 v10 h-16 v24 h-10z`,'#fff'));
+  return s;}
+function lobbyBase(nm){return room('#efe0c4')+sign(1180,110,520,90,nm)+desk(1100,440,190)+staff(1300,FLOOR,{dir:-1,arm:'desk',id:'st1',skin:C.skinS2,style:'bun',hair:C.hairA});}
+function capTag(id,x,y,w,txt,rot=0,size=32){return cut(id,R(x-w/2,y-46,w,72,C.cream,12)+Tx(x,y,size,txt,C.ink,800),rot?`rotate(${rot} ${x} ${y})`:'');}
+function rewindTo(T){const sc=SCENES.find(s=>T>=s.from&&T<s.to); window.__noLabel=true; const out=sc.draw(T-sc.from,sc.to-sc.from); window.__noLabel=false; return out;}
+function fmtN(n){return n.toLocaleString('en-GB');}
+function station(lt){ let s=room('#dfe3e6','#9aa0a6');
+  s+=sign(700,90,520,100,'TAMPERE','railway station',C.navy)+cut('board',R(1450,200,440,260,'#1d1f22',8)+['IC 47  HELSINKI  08:05  4','R  RIIHIMÄKI  08:12  2','IC 26  OULU  08:20  1','H  JYVÄSKYLÄ  08:31  3'].map((r,i)=>Tx(1466,250+i*56,26,r,'#f4c542',700,'start',`font-family="ui-monospace,monospace"`)).join(''));
+  return s; }
+function trainInside(){ let s=R(-200,-200,2320,1500,'#e7e1d6')+R(-200,FLOOR,2320,400,'#6b6f73');
+  for(let i=0;i<4;i++) s+=cut('tw'+i,R(80+i*470,200,380,240,'#9fc3d6',20)+R(80+i*470,380,380,60,'#c6dbe4',0));
+  return s; }
+function seat(x){return cut('seat'+x,R(x-35,FLOOR-420,70,420,C.teal2,14)+R(x-35,FLOOR-210,260,40,C.teal,10)+R(x+65,FLOOR-170,24,170,'#4a4e52'));}
+function bistroBase(nm,sub){ return room('#f3dcc6','#b58a62')+sign(640,100,640,110,nm,sub,C.coral); }
+function phoneScene(bg,img,t,o={}){let s=R(-10,-10,1940,1100,bg)+bigPhone(o.cx||960,500,img,{w:340,overlay:o.ov||''})+(o.th||''); return s;}
+/* phone where each tap swaps to a real capture with one more switch on */
+function stepPhone(cx,cy,w,pre,ys,t,t0,step){ const u=(t-t0)/step; const i=Math.floor(u), fr=u-i;
+  const k=Math.max(0,Math.min(ys.length,u<0?0:i+(fr>=0.3?1:0)));
+  let s=bigPhone(cx,cy,pre+'_s'+k,{w});
+  if(i>=0&&i<ys.length){ const [x,y]=phonePt(cx,cy,w,668,ys[i]); s+=thumb(x+4,y+4,fr<.45); }
+  return s; }
+
+/* ---- bus and ferry sets ---- */
+function busStation(){ let s=room('#e4e2dc','#9aa0a6')+sign(660,90,600,100,'TAMPERE','bus station',C.navy);
+  s+=cut('bboard',R(1440,200,460,230,'#1d1f22',8)+['07:30  TURKU      12','07:45  HELSINKI    4','08:00  PORI        9'].map((r,i)=>Tx(1456,260+i*60,28,r,'#f4c542',700,'start',`font-family="ui-monospace,monospace"`)).join(''));
+  s+=cut('coach',R(-120,FLOOR-430,1000,400,'#e9eef0',36)+R(-120,FLOOR-140,1000,40,C.teal)+[0,1,2].map(i=>R(-60+i*300,FLOOR-390,250,150,'#9fc3d6',14)).join('')+R(800,FLOOR-400,60,300,'#cfd8dc',8)+Ci(120,FLOOR-30,52,C.ink)+Ci(680,FLOOR-30,52,C.ink)+Tx(380,FLOOR-170,40,'VÄYLÄ BUS','#fff',800));
+  return s; }
+function busInside(){ let s=R(-200,-200,2320,1500,'#e3e1da')+R(-200,FLOOR,2320,400,'#5f6368');
+  for(let i=0;i<4;i++) s+=cut('bw'+i,R(60+i*470,190,400,220,'#9fc3d6',24));
+  return s; }
+function busSeat(x){return cut('bseat'+x,R(x-35,FLOOR-430,74,430,C.navy,16)+R(x-35,FLOOR-210,250,40,C.navy2,10)+R(x+80,FLOOR-170,24,170,'#4a4e52'));}
+function socket(x,y){return cut('sock'+x,R(x,y,60,60,'#fff',8)+Ci(x+20,y+30,6,C.ink)+Ci(x+40,y+30,6,C.ink));}
+function toiletDoor(x){return cut('wc'+x,R(x,FLOOR-480,220,480,'#b9c1c5',8)+R(x+70,FLOOR-430,80,50,'#fff',6)+Tx(x+110,FLOOR-394,30,'WC',C.ink,800));}
+function ferrySide(lift){ let s=R(-200,-200,2320,1500,'#cfe3ee')+R(-200,FLOOR-40,2320,420,'#7f9fb0');
+  s+=cut('hull',R(-100,140,2120,FLOOR-160,'#ffffff',30)+R(-100,FLOOR-170,2120,60,C.navy)+[0,1,2,3,4,5].map(i=>Ci(120+i*300,260,40,'#9fc3d6')).join('')+Tx(520,420,56,'AALTO LINE',C.navy,800));
+  if(lift) s+=cut('liftd',R(1220,FLOOR-430,240,410,'#9aa3a8',8)+R(1230,FLOOR-420,105,400,'#b9c1c5')+R(1345,FLOOR-420,105,400,'#b9c1c5')+R(1260,FLOOR-490,160,46,C.green,8)+Tx(1340,FLOOR-457,28,'LIFT','#fff',800));
+  else { let st=''; for(let i=0;i<7;i++) st+=R(1220+i*60,FLOOR-60-i*60,300-i*0,60,i%2?'#8a9599':'#9aa3a8'); s+=cut('stairs',st+L(1200,FLOOR-80,1640,FLOOR-480,C.ink,8)); }
+  return s; }
+function ferryLounge(){ let s=R(-200,-200,2320,1500,'#efe7da')+R(-200,FLOOR,2320,400,'#6f7a80');
+  for(let i=0;i<5;i++) s+=cut('ph'+i,Ci(180+i*400,280,90,C.cream)+Ci(180+i*400,280,74,'#9fc3d6')+R(110+i*400,300,140,50,'#7f9fb0'));
+  return s; }
+function terminalDesk(){ return room('#e6e2da','#9aa0a6')+sign(660,90,600,100,'HELSINKI','West Harbour terminal',C.navy)+desk(1200,520,200,C.navy)+staff(1500,FLOOR,{dir:-1,arm:'desk',id:'tdesk',skin:C.skinS2,style:'bun',hair:C.hairA,face:'flat'}); }
+function shareScene(px,bg,bistroWord,t){ let s=R(-10,-10,1940,1100,bg); const img=t<4?px+'_see_hotel':t<6.6?px+'_share':t<9?px+'_share_stopped1':px+'_share_stopped';
+  s+=bigPhone(960,500,img,{w:340})+ripple(1240,300,t);
+  if(t<4&&t>1) s+=cut('lb',R(1300,560,460,90,C.cream,12)+Tx(1530,618,32,'what the hotel sees',C.ink,800));
+  if(t>=4&&t<9.2){const [x,y]=phonePt(960,500,340,420,1216); s+=thumb(x,y,(t>6&&t<6.6)||(t>8.4&&t<9));}
+  if(t>6.7) s+=cut('ok1',R(1300,380,440,84,C.cream,12)+Tx(1520,435,32,'hotel: access ended',C.ink,800));
+  if(t>9.1) s+=cut('ok2',R(1300,490,440,84,C.cream,12)+Tx(1520,545,32,bistroWord+': access ended',C.ink,800));
+  return s+labelTag('With the vault',true);}
+/* v2: she sends it herself (10 s). pre = capture before the tap, tap = [ix,iy] in capture pixels */
+function sendScene(px,bg,pre,tap,lines,tag,t){ const cx=560,cy=520,w=340, tapT=4.2, up=t>=tapT+0.4;
+  let s=R(-10,-10,1940,1100,bg)+bigPhone(cx,cy,up?px+'_x_sent':px+'_'+pre,{w});
+  if(t>=tapT-1&&t<tapT+1){ const [x,y]=phonePt(cx,cy,w,tap[0],tap[1]); s+=thumb(x+4,y+4,t>=tapT&&t<tapT+0.4); }
+  if(!up){ s+=ripple(1240,300,t)+cut('ln',R(1000,380,760,60+lines.length*56,C.cream,16)+lines.map((l,i)=>Tx(1380,440+i*56,36,esc(l),C.ink,700)).join('')); }
+  else { const k=Math.min(1,(t-tapT-0.4)/0.6); s+=G(`translate(0 ${Math.round((1-k)*40)})`,tablet(980,250,760,px+'_x_staff',1))+(t>tapT+1.6?capTag('sent',1360,190,640,tag,-1,34):''); }
+  return s+labelTag('With the vault',true); }
+/* v2: Helmi reads the screen aloud. h0,h1 = scene-relative seconds of Helmi's voice */
+function wrapTxt(s,n){ const w=s.split(' '), L=[]; let c=''; w.forEach(x=>{ if((c+' '+x).trim().length>n){ L.push(c.trim()); c=x; } else c+=' '+x; }); if(c.trim()) L.push(c.trim()); return L; }
+function speakerIcon(x,y,s,col){ return P(`M${x} ${y-8*s} h${10*s} l${12*s} ${-10*s} v${36*s} l${-12*s} ${-10*s} h${-10*s}z`,col)+P(`M${x+28*s} ${y-6*s} q${8*s} ${10*s} 0 ${20*s} M${x+34*s} ${y-14*s} q${16*s} ${18*s} 0 ${36*s}`,'none',`stroke="${col}" stroke-width="${4*s}" stroke-linecap="round"`); }
+function helmiRead(t,h0,h1,text,cx=960,cy=500,w=340){ if(t<h0-0.6) return '';
+  const [bx,by]=phonePt(cx,cy,w,524,62); let s=cut('rdon',Ci(bx,by,22,C.mustard)+speakerIcon(bx-14,by-2,0.75,C.ink));
+  if(t>=h0&&t<h1+1.5){ for(let i=0;i<3;i++){ const u=((t*0.7+i/3)%1); s+=`<circle cx="${cx}" cy="${cy-w*1.02-10}" r="${20+u*70}" fill="none" stroke="${C.mustard}" stroke-width="${5*(1-u)+1}" opacity="${(1-u).toFixed(2)}"/>`; } }
+  const L=wrapTxt(text,30), words=text.split(' ').length, k=clamp((t-h0)/(h1-h0)); let shown=Math.ceil(k*words), acc=0;
+  let card=R(1220,170,620,96+L.length*52,C.cream,16)+speakerIcon(1258,214,1,C.ink)+Tx(1310,226,30,'Helmi is reading aloud',C.ink,800,'start');
+  L.forEach((ln,i)=>{ const n=ln.split(' ').length; const vis=Math.max(0,Math.min(n,shown-acc)); acc+=n; const a=ln.split(' ').slice(0,vis).join(' '), b=ln.split(' ').slice(vis).join(' ');
+    card+=`<text x="1250" y="${290+i*52}" font-size="34" font-weight="700" text-anchor="start" font-family="Archivo, 'Helvetica Neue', Arial, sans-serif"><tspan fill="${C.ink}">${esc(a)}</tspan><tspan fill="#b7ad9c">${b?(a?' ':'')+esc(b):''}</tspan></text>`; });
+  return s+cut('rdcard',card); }
+
+/* ---------- trip replay: scenes (runs inside the film-engine scope) ---------- */
+function tfChar(per,x,face,t,moving){ const walk=moving?t*9:0, roll=moving?t*4:0;
+  if(per==='aino') return aino(x,FLOOR,{face,roll});
+  if(per==='elina') return kide(x+170,FLOOR,{walk})+elina(x,FLOOR,{face,walk});
+  if(per==='laura') return pram(x+170,FLOOR,{roll})+laura(x,FLOOR,{face,walk});
+  return sanna(x,FLOOR,{face,walk}); }
+function tfSky(){ return R(-200,-200,2320,FLOOR+200,'#bcd6e3')+R(-200,FLOOR,2320,400,'#8d8f8c')+R(-200,FLOOR-14,2320,18,'#a7a9a5'); }
+function tfHouses(){ let s=''; const cols=['#e9c46a','#e76f51','#8ab17d','#f4a261','#b5c99a','#d4a5a5']; for(let i=0;i<7;i++){ const x=-60+i*290, h=380+((i*97)%160); s+=R(x,FLOOR-h,260,h,cols[i%cols.length],4)+R(x+40,FLOOR-h+60,60,80,'#fff8ec',4)+R(x+150,FLOOR-h+60,60,80,'#fff8ec',4)+P(`M${x-10} ${FLOOR-h} l140 -90 l140 90z`,'#7a4a35'); } return s; }
+function tfCar(x){ return cut('car',R(x,FLOOR-170,420,120,'#f2c94c',30)+R(x+70,FLOOR-250,260,100,'#f2c94c',30)+R(x+95,FLOOR-235,95,70,'#cfe3ee',8)+R(x+210,FLOOR-235,95,70,'#cfe3ee',8)+Ci(x+95,FLOOR-45,45,C.ink)+Ci(x+330,FLOOR-45,45,C.ink)+R(x+170,FLOOR-290,80,34,C.ink,6)+Tx(x+210,FLOOR-264,24,'TAXI','#f2c94c',800)); }
+function tfFrames(){ let s=''; [[260,210],[620,250],[1500,230]].forEach(([x,y],i)=>{ s+=cut('fr'+i,R(x,y,260,200,'#a5714a',6)+R(x+16,y+16,228,168,['#7fb3d5','#e9c46a','#8ab17d'][i])+Ci(x+130,y+100,40,'#fff8ec','opacity=".7"')); }); return s; }
+function tfBg(st){ const per=st.per, n=st.name;
+  try{
+  switch(st.id){
+    case 'rail': if(per==='elina') return station(0); if(per==='sanna') return busStation(); if(per==='laura') return terminalDesk();
+      return room('#dfe7ec','#9aa0a6')+sign(640,90,640,100,'TAMPERE-PIRKKALA','airport',C.navy)+desk(1150,440,190)+staff(1350,FLOOR,{dir:-1});
+    case 'hotel': return lobbyBase(n);
+    case 'bistro': return bistroBase(n,'restaurant')+table(1350)+chair(1180);
+    case 'venue': return room('#3a2f4a','#5c3b2a')+R(1000,120,900,520,'#7a1f2b',10)+R(1000,600,900,40,'#4a1520')+sign(260,110,620,100,n,'tonight',C.mustard,C.ink);
+    case 'ins': return room('#eef0f2','#9aa0a6')+sign(640,90,640,100,n,'travel insurance',C.navy)+desk(1150,440,190)+staff(1350,FLOOR,{dir:-1});
+    case 'taxi': return tfSky()+tfHouses()+tfCar(1150);
+    case 'tour': return tfSky()+tfHouses()+sign(1250,140,560,90,n,'guided walk',C.teal);
+    case 'pharmacy': return room('#e3f1e8','#9aa0a6')+sign(640,90,640,100,n,'pharmacy',C.green)+desk(1150,440,190)+staff(1350,FLOOR,{dir:-1});
+    case 'spa': return room('#dcefee','#b9c9c7')+sign(640,90,640,100,n,'spa',C.teal)+plant(300)+plant(1750)+staff(1450,FLOOR,{dir:-1,top:C.teal});
+    case 'work': return room('#e9e4f0')+sign(640,90,640,100,n,'conference',C.navy)+table(1350)+laptop(1350,FLOOR-190,1)+chair(1520);
+    case 'grocery': return room('#efe0c4')+sign(640,90,640,100,n,'delivery',C.green)+door(1300,'')+cut('bag',R(1150,FLOOR-160,140,160,'#d9b38c',10)+R(1170,FLOOR-200,30,60,C.green,6)+Ci(1250,FLOOR-180,26,C.coral));
+    case 'museum': return room('#f4efe6')+tfFrames()+sign(980,560,520,80,n,'',C.ink);
+    case 'babysit': return room('#f6e7f0')+sign(640,90,640,100,n,'babysitting',C.coral)+cot(1200);
+    case 'cowork': return room('#e7ece8')+sign(640,90,640,100,n,'coworking',C.ink)+table(1350)+laptop(1350,FLOOR-190,1)+plant(1700);
+  } }catch(e){}
+  return room()+sign(640,90,640,100,n,'',C.navy); }
+function tfPanel(st,t){ if(t<1.3) return ''; const u=ease(prog(t,1.3,1.8)), good=st.ok, col=st.ok==null?C.mustard:good?C.green:C.red;
+  const lines=wrapTxt(st.text,34).slice(0,4); const h=150+lines.length*48;
+  return G(`translate(${1060+(1-u)*120} 250)`,R(0,0,800,h,C.cream,22,'filter="url(#sh)"')+R(0,0,16,h,col,8)+Ci(70,70,34,col)+Tx(70,84,40,st.ok==null?'·':good?'✓':'✗','#fff',900)+
+    Tx(126,84,40,esc(st.title),C.ink,800,'start')+lines.map((l,i)=>Tx(48,150+i*48,34,esc(l),C.ink,500,'start')).join(''),`opacity="${u}"`); }
+function tfTop(st){ return G('translate(40 40)',R(0,0,560,96,'rgba(255,248,236,.94)',18,'filter="url(#sh)"')+Tx(30,42,28,esc(st.when.toUpperCase()),C.coral,800,'start')+Tx(30,80,32,esc(st.name),C.ink,800,'start'))+
+  G('translate(1420 50)',R(0,0,440,96,'rgba(42,36,32,.88)',18)+Tx(110,46,40,String(st.e),'#fff',800)+Tx(110,80,20,'times explaining','#e8dccb',600)+Tx(320,46,40,String(st.m),'#fff',800)+Tx(320,80,20,'minutes lost','#e8dccb',600)); }
+function tfStop(st){ return (t,d)=>{ const x=lerp(-260,560,ease(prog(t,0,1.2))); const moving=t<1.2; const face=st.ok==null?'smile':st.ok?'smile':'sad';
+  return tfBg(st)+tfChar(st.per,x,t<1.2?'smile':face,t,moving)+tfTop(st)+tfPanel(st,t); }; }
+function tfBreach(st){ return (t,d)=>{ const flash=(Math.sin(t*9)+1)/2; let s=room('#1f2d45','#141c2b')+R(-200,-200,2320,1500,C.red,0,`opacity="${(0.18*flash).toFixed(3)}"`);
+  for(let i=0;i<3;i++) s+=cut('rack'+i,R(260+i*260,260,200,560,'#2c3e5c',10)+[0,1,2,3,4,5].map(j=>R(285+i*260,290+j*85,150,50,'#1a2333',6)+Ci(415+i*260,315+j*85,8,j%2?'#e63946':'#3f8f5a')).join(''));
+  const lines=wrapTxt(st.text,34).slice(0,4);
+  s+=G('translate(1060 230)',R(0,0,800,190+lines.length*48,C.cream,22,'filter="url(#sh)"')+R(0,0,16,190+lines.length*48,C.red,8)+Tx(48,70,40,'BREAK-IN',C.red,900,'start')+Tx(48,120,34,esc(st.name),C.ink,800,'start')+lines.map((l,i)=>Tx(48,180+i*48,32,esc(l),C.ink,500,'start')).join(''));
+  return s; }; }
+function tfAccident(st){ return (t,d)=>{ let s=room('#3a2f4a','#5c3b2a')+steps(-100,4,700,60); const x=lerp(380,520,ease(prog(t,0,0.8)));
+  s+=G(t>0.8&&t<1.4?`rotate(${Math.sin(t*30)*3} ${x} ${FLOOR})`:'',tfChar(st.per,x,t>0.8?'sad':'smile',t,false));
+  const ok=st.ok, lines=wrapTxt(st.text,34).slice(0,4);
+  if(t>1.4) s+=G('translate(1060 230)',R(0,0,800,190+lines.length*48,C.cream,22,'filter="url(#sh)"')+R(0,0,16,190+lines.length*48,ok?C.green:C.red,8)+Tx(48,70,40,'AN ACCIDENT',ok?C.green:C.red,900,'start')+Tx(48,120,36,esc(st.title),C.ink,800,'start')+lines.map((l,i)=>Tx(48,180+i*48,32,esc(l),C.ink,500,'start')).join(''),`opacity="${ease(prog(t,1.4,1.9))}"`);
+  return s; }; }
+function tfOutro(st){ return (t,d)=>{ let s=R(-200,-200,2320,1480,C.teal); s+=Tx(960,250,72,'YOUR TRIP','#fff',900);
+  st.rows.forEach(([n,l],i)=>{ const u=ease(prog(t,0.4+i*0.35,1+i*0.35)); s+=G(`translate(${300+i*460} 380)`,R(0,0,400,300,C.cream,24,'filter="url(#sh)"')+Tx(200,150,96,esc(String(n)),C.ink,900)+Tx(200,220,30,esc(l),C.ink,600),`opacity="${u}"`); });
+  s+=Tx(960,820,40,esc(st.sub),'#fff',600,'middle',`opacity="${ease(prog(t,1.6,2.2))}"`); return s; }; }
+function tfBuild(data){ let at=0; const scenes=[], caps=[];
+  const add=(dur,draw,say)=>{ scenes.push({from:at,to:at+dur,draw}); if(say) caps.push({from:at+0.2,to:at+dur-0.1,text:say}); at+=dur; };
+  add(3.4,(t)=>titleCard(['YOUR TRIP'],t,C.teal,'#fff',data.sub),data.intro);
+  const dur=(base,say)=>Math.min(base+1.4,Math.max(base,String(say||'').split(' ').length*0.33+1.1));
+  data.stops.forEach(st=>{ if(st.kind==='breach') add(dur(4.2,st.say),tfBreach(st),st.say); else if(st.kind==='accident') add(dur(5,st.say),tfAccident(st),st.say); else add(dur(4.0,st.say),tfStop(st),st.say); });
+  add(5,tfOutro(data.outro),data.outro.say);
+  return {scenes,caps,duration:at}; }
+
+/* ---------- trip replay: player ---------- */
+let tfF=null, tfPlaying=false, tfT=0, tfT0=0, tfS=0, tfRaf=null, tfVoice=true, tfLast=-1;
+function tfSpeak(txt){ try{ if(!tfVoice||!window.speechSynthesis) return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(txt); u.lang='en-GB'; u.rate=1.05; const v=speechSynthesis.getVoices().find(v=>/^en(-|_)GB/i.test(v.lang))||speechSynthesis.getVoices().find(v=>/^en/i.test(v.lang)); if(v) u.voice=v; speechSynthesis.speak(u); }catch(e){} }
+function tfRender(t){ tfT=t; const i=Math.max(0,tfF.scenes.findIndex(s=>t>=s.from&&t<s.to)), sc=tfF.scenes[i<0?tfF.scenes.length-1:i];
+  const lt=t-sc.from, wipe=lt<0.4?R(-10,-10,1940,1100,C.paper,0,`opacity="${(1-ease(lt/0.4)).toFixed(3)}"`):'';
+  document.getElementById('tf-world').innerHTML=sc.draw(lt,sc.to-sc.from)+wipe;
+  const cap=tfF.caps.find(c=>t>=c.from&&t<c.to); document.getElementById('tf-cap').textContent=cap?cap.text:'';
+  if(i!==tfLast){ tfLast=i; if(tfPlaying&&cap) tfSpeak(cap.text); }
+  const pr=document.getElementById('tf-prog'); if(pr) pr.value=t; }
+function tfLoop(){ if(!tfPlaying) return; let t=tfS+(performance.now()-tfT0)/1000; if(t>=tfF.duration){ t=tfF.duration-0.01; tfRender(t); tfPause(); return; } tfRender(Math.floor(t*24)/24); tfRaf=requestAnimationFrame(tfLoop); }
+function tfPlay(){ if(tfPlaying) return; if(tfT>=tfF.duration-0.05){ tfT=0; } tfPlaying=true; tfS=tfT; tfT0=performance.now(); tfLast=-1; document.getElementById('tf-pp').textContent='Pause'; tfLoop(); }
+function tfPause(){ tfPlaying=false; cancelAnimationFrame(tfRaf); try{ speechSynthesis.cancel(); }catch(e){} const b=document.getElementById('tf-pp'); if(b) b.textContent='Play'; }
+function tfOpen(data){ tfF=tfBuild(data); let el=document.getElementById('tfilm'); if(!el){ el=document.createElement('div'); el.id='tfilm'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Your trip, replayed'); document.body.appendChild(el); }
+  el.innerHTML=`<div class="tf-box"><div class="tf-stage"><svg viewBox="0 0 1920 1080" aria-hidden="true"><defs><filter id="sh" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="5" dy="7" stdDeviation="3" flood-color="#3b2a1a" flood-opacity=".28"/></filter></defs><g id="tf-world"></g></svg></div>
+   <p class="tf-cap" id="tf-cap" aria-live="polite"></p><input type="range" id="tf-prog" min="0" max="${tfF.duration.toFixed(2)}" step="0.05" value="0" aria-label="Position in the replay">
+   <div class="tf-ctl"><button id="tf-pp">Pause</button><button id="tf-re">Restart</button><button id="tf-snd" aria-pressed="true">Voice on</button><button id="tf-x">Close</button></div><p class="tf-tip">Turn your phone sideways for a bigger picture.</p></div>`;
+  el.hidden=false; document.body.classList.add('tf-on');
+  document.getElementById('tf-pp').onclick=()=>tfPlaying?tfPause():tfPlay();
+  document.getElementById('tf-re').onclick=()=>{ tfPause(); tfRender(0); tfPlay(); };
+  document.getElementById('tf-snd').onclick=e=>{ tfVoice=!tfVoice; e.target.textContent=tfVoice?'Voice on':'Voice off'; e.target.setAttribute('aria-pressed',tfVoice); if(!tfVoice) try{ speechSynthesis.cancel(); }catch(_){} };
+  document.getElementById('tf-x').onclick=()=>{ tfPause(); el.hidden=true; document.body.classList.remove('tf-on'); };
+  document.getElementById('tf-prog').oninput=e=>{ const w=tfPlaying; tfPause(); tfRender(+e.target.value); if(w) tfPlay(); };
+  try{ speechSynthesis.cancel(); }catch(e){} tfT=0; tfRender(0); tfPlay(); }
+
+return {open:tfOpen};
+})();
 
 /* ================================================================== business app */
 let BA={open:false,biz:'hotel',tab:'book',ret:null};
