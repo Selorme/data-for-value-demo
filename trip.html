@@ -1439,7 +1439,7 @@ document.addEventListener('click',e=>{
   if(a==='meetgo'){ S.t0=Date.now(); if(TRIP){ tripYouData(); vGo({tab:'tconn'}); return; } vGo({tab:'home'}); return; }
   if(a==='tsetup'){ const n=v.dataset.n; if(n==='2'){ TS().connSet=1; vGo({tab:'tauto'}); } else if(n==='adv') vGo({tab:'tadv'}); else if(n==='3') vGo({tab:'trules'}); else { TS().setupDone=1; tripPlan(); tripGo(0); } return; }
   if(a==='topen'){ tripOpen(v.dataset.b); return; } if(a==='tchat'){ vGo({tab:'trip',biz:v.dataset.b,fu:true,vol:false}); return; } if(a==='tev'){ tripEv(v.dataset.a); return; }
-  if(a==='tnext'){ tripNext(); return; } if(a==='tstory'){ vGo({tab:'tstory'}); return; } if(a==='tfilm'){ TripFilm.open(tripFilmData()); return; } if(a==='tfinish'){ vGo({tab:'finish'}); return; }
+  if(a==='task'){ V.tAsk=!V.tAsk; renderVault(true); return; } if(a==='tnext'){ tripNext(); return; } if(a==='tstory'){ vGo({tab:'tstory'}); return; } if(a==='tfilm'){ TripFilm.open(tripFilmData()); return; } if(a==='tfinish'){ vGo({tab:'finish'}); return; }
   if(a==='finish'){ const tasksDone=S.study&&S.study.tasksDone; log('study finish view'); vGo({tab:tasksDone?'finish':'tasks',biz:null,src:null,see:null}); return; }
   if(a==='taskstart'){ S.study=S.study||{}; S.study.tasks={}; S.study.tasksDone=true; S.task={i:0,t0:Date.now(),stopId:stopTarget()}; log('tasks start'); vGo({tab:'home',biz:null,src:null,see:null}); return; }
   if(a==='taskskipall'){ S.study=S.study||{}; S.study.tasksDone=true; S.study.tasks={skipped:true}; log('tasks skipped'); vGo({tab:'finish'}); return; }
@@ -1472,6 +1472,12 @@ document.addEventListener('click',e=>{
   if(a==='hact'){ runAct(+v.dataset.i); return; }
   if(a==='askex'){ askHelmi(v.dataset.q); return; }
   if(a==='hclear'){ S.chat=[]; V.acts=[]; renderVault(); const i=$('vask'); if(i) i.focus({preventScroll:true}); say('Chat cleared.'); log('helmi chat','cleared'); return; }
+  if(a==='cmic'){ if(!SR) return; if(window.__rec){ try{ window.__rec.stop(); }catch(_){} return; } const cb=v.dataset.b;
+    try{ if(canSpeak) speechSynthesis.cancel(); window.__listening=true; const r=new SR(); window.__rec=r; r.lang='en-GB'; r.interimResults=false; r.continuous=false; r.maxAlternatives=1; let got=false; v.textContent='●'; v.setAttribute('aria-label','Listening. Tap to stop'); say('Listening');
+      r.onresult=ev=>{ if(got) return; const res=ev.results[ev.results.length-1]; if(res&&res.isFinal===false) return; got=true; const q=(res?res[0].transcript:'').trim(); try{ r.stop(); }catch(_){} window.__listening=false; if(!q) return; meSend(cb,q); renderLive(); renderVault(true); };
+      r.onend=()=>{ window.__rec=null; window.__listening=false; const m=document.querySelector('[data-v=cmic]'); if(m){ m.textContent='🎤'; m.setAttribute('aria-label','Speak your message'); } };
+      r.onerror=e=>{ window.__rec=null; window.__listening=false; if(e.error!=='aborted'&&e.error!=='no-speech') say('I couldn’t hear you. Try typing instead.'); };
+      r.start(); }catch(err){ window.__rec=null; window.__listening=false; say('Speaking isn’t available in this browser. Try typing.'); } return; }
   if(a==='mic'){ if(!SR) return; if(window.__rec){ try{ window.__rec.stop(); }catch(_){} return; }
     try{ if(canSpeak) speechSynthesis.cancel(); window.__listening=true; const r=new SR(); window.__rec=r; r.lang='en-GB'; r.interimResults=false; r.continuous=false; r.maxAlternatives=1; let got=false;
       v.textContent='●'; v.setAttribute('aria-label','Listening. Tap to stop'); say('Listening');
@@ -2056,7 +2062,7 @@ function vChat(b){ const L=msgs(b.id); S.unread[b.id]=0; const q=lastBizQ(b.id),
    `<ol class="thread" aria-label="Messages">${L.map((m,i)=>m.from==='helmi'?`<li class="h">${helmi(esc(m.text)+(m.kind==='offer'&&!m.done?`<div class="v-quick two">${`<button class="v-btn" data-v="offer" data-b="${b.id}" data-i="${i}">Share it properly</button><button class="v-btn alt" data-v="offerno" data-b="${b.id}" data-i="${i}">Not now</button>`}</div>`:m.done?`<br><span class="tiny"><b>${m.done==='sent'?'Shared for this trip.':'OK.'}</b></span>`:''))}</li>`:`<li class="${m.from==='me'?'me':'them'}"><span class="sr">${m.from==='me'?'You':esc(b.name)}: </span>${esc(m.text)}<span class="tiny muted">${m.from==='me'?'You':esc(b.name)} · ${esc(m.t.slice(0,5))}</span></li>`).join('')}</ol>
    ${off?`<p class="note">You closed this chat. ${esc(b.name)} can’t message you.</p><button class="v-btn alt" data-v="chatopen" data-b="${b.id}">Open the chat again</button>`:
    `${q?`<div class="chips">${q.opts.map(o=>`<button class="chip" data-v="qr" data-b="${b.id}" data-a="${esc(o)}">${esc(o)}</button>`).join('')}</div>`:''}
-   <form id="chatform" class="askrow" data-b="${b.id}"><label class="sr" for="chatin">Message to ${esc(b.name)}</label><input id="chatin" autocomplete="off" maxlength="240" placeholder="Write to ${esc(b.name)}"><button type="submit" class="v-ib txt">Send</button></form>
+   <form id="chatform" class="askrow" data-b="${b.id}"><label class="sr" for="chatin">Message to ${esc(b.name)}</label><input id="chatin" autocomplete="off" maxlength="240" placeholder="Write to ${esc(b.name)}">${SR?`<button type="button" class="v-ib" data-v="cmic" data-b="${b.id}" aria-label="Speak your message" title="Speak">🎤</button>`:''}<button type="submit" class="v-btn-s v-ib txt">Send</button></form>
    <button class="v-btn alt" data-v="chatclose" data-b="${b.id}">Close the chat</button>`}
    <p class="tiny muted">Messages are part of your sharing history. ${esc(b.name)} keeps them only for this booking.</p>`;
 }
@@ -2446,7 +2452,7 @@ function tStage(){ const st=tripPlan()[TS().i]; if(!st) return tHome();
   const b=bz(st.id), n=b.fields.length, scene=preOf(b);
   return tripBar()+tripMeters()+`<div class="tp-when">${esc(b.id==='ins'?'Three days before your trip':b.when.replace(' · ',', '))}</div><p class="tp-scene">${esc(scene)}</p>
    <div class="v-card tp-note"><p class="tp-k">New request</p><p class="v-big"><b>${esc(b.name)}</b> is asking for ${n} thing${n===1?'':'s'}</p><p class="small muted">${esc(b.type)}</p><p class="small">${esc(b.extra?b.why:yb(b).why)}</p></div>
-   <button class="v-btn" data-v="topen" data-b="${b.id}">See what they ask</button>`; }
+   <button class="v-btn" data-v="topen" data-b="${b.id}">See what they ask</button>`+(V.tAsk?chatBox()+`<button class="v-btn alt" data-v="task">Hide Ask Helmi</button>`:`<button class="v-btn alt" data-v="task">Ask Helmi something (type or speak)</button>`); }
 function tripOpen(bid){ const b=bz(bid), t=TS(), ch=S.choice[bid]={};
   if(t.auto==='suggest'){ suggestFor(b).forEach(s=>ch[s.k]=s.on?'share':'deny'); }
   applyRules(b,ch); b.fields.forEach(k=>{ if(!ch[k]) ch[k]='deny'; if(tripLocked(k)) ch[k]='deny'; });
@@ -2991,7 +2997,7 @@ function tfOutro(st){ return (t,d)=>{ let s=R(-200,-200,2320,1480,C.teal); s+=Tx
   st.rows.forEach(([n,l],i)=>{ const u=ease(prog(t,0.4+i*0.35,1+i*0.35)); s+=G(`translate(${300+i*460} 380)`,R(0,0,400,300,C.cream,24,'filter="url(#sh)"')+Tx(200,150,96,esc(String(n)),C.ink,900)+Tx(200,220,30,esc(l),C.ink,600),`opacity="${u}"`); });
   s+=Tx(960,820,40,esc(st.sub),'#fff',600,'middle',`opacity="${ease(prog(t,1.6,2.2))}"`); return s; }; }
 function tfBuild(data){ let at=0; const scenes=[], caps=[];
-  const add=(dur,draw,say)=>{ scenes.push({from:at,to:at+dur,draw}); if(say) caps.push({from:at+0.2,to:at+dur-0.1,text:say}); at+=dur; };
+  const add=(dur,draw,say)=>{ scenes.push({from:at,to:at+dur,draw,say}); if(say) caps.push({from:at+0.2,to:at+dur-0.1,text:say}); at+=dur; };
   const dur=(base,say)=>{ const v=(typeof TRIPVOX!=='undefined')&&TRIPVOX[say]; return v?Math.max(base-0.8,v[1]+0.75):Math.min(base+1.4,Math.max(base,String(say||'').split(' ').length*0.33+1.1)); };
   add(dur(3.4,data.intro),(t)=>titleCard(['YOUR TRIP'],t,C.teal,'#fff',data.sub),data.intro);
   data.stops.forEach(st=>{ if(st.kind==='breach') add(dur(4.2,st.say),tfBreach(st),st.say); else if(st.kind==='accident') add(dur(5,st.say),tfAccident(st),st.say); else add(dur(4.0,st.say),tfStop(st),st.say); });
@@ -3007,7 +3013,7 @@ function tfRender(t){ tfT=t; const i=Math.max(0,tfF.scenes.findIndex(s=>t>=s.fro
   const lt=t-sc.from, wipe=lt<0.4?R(-10,-10,1940,1100,C.paper,0,`opacity="${(1-ease(lt/0.4)).toFixed(3)}"`):'';
   document.getElementById('tf-world').innerHTML=sc.draw(lt,sc.to-sc.from)+wipe;
   const cap=tfF.caps.find(c=>t>=c.from&&t<c.to); document.getElementById('tf-cap').textContent=cap?cap.text:'';
-  if(i!==tfLast){ tfLast=i; if(tfPlaying&&cap) tfSpeak(cap.text); }
+  if(i!==tfLast){ tfLast=i; if(tfPlaying&&sc.say) tfSpeak(sc.say); }
   const pr=document.getElementById('tf-prog'); if(pr) pr.value=t; }
 function tfLoop(){ if(!tfPlaying) return; let t=tfS+(performance.now()-tfT0)/1000; if(t>=tfF.duration){ t=tfF.duration-0.01; tfRender(t); tfPause(); return; } tfRender(Math.floor(t*24)/24); tfRaf=requestAnimationFrame(tfLoop); }
 function tfPlay(){ if(tfPlaying) return; if(tfT>=tfF.duration-0.05){ tfT=0; } tfPlaying=true; tfS=tfT; tfT0=performance.now(); tfLast=-1; document.getElementById('tf-pp').textContent='Pause'; tfLoop(); }
