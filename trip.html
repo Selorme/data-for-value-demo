@@ -420,7 +420,7 @@ body.tripmode #v-nav{display:none!important}
 .tp-row i{display:block;height:12px;border-radius:6px;background:var(--hair);animation:tpGrow .9s ease both;transform-origin:left}
 .tp-row.me{font-weight:700} .tp-row.me i{background:var(--accent)}
 .tp-row b{font-variant-numeric:tabular-nums;min-width:3.2rem;text-align:right}
-@keyframes tpIn{from{opacity:0;transform:translateY(10px)}}
+@keyframes tpIn{from{opacity:0}}
 @keyframes tpGrow{from{transform:scaleX(0)}}
 @keyframes tpShake{0%,100%{transform:none}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 @media (prefers-reduced-motion:reduce){.tp-moms li,.tp-fade,.tp-note,.tp-deal,.tp-breach,.tp-row i{animation:none}}
@@ -461,9 +461,16 @@ body.group-only #grp{display:grid;gap:18px;padding:24px 28px;max-width:1500px;ma
 .tp-rules .seg{display:grid;grid-template-columns:repeat(3,1fr)}
 .tp-okc{border:2px solid var(--good);background:var(--goodbg)}
 .sw-in:disabled+.sw-ui{opacity:.35}
-#tfilm{position:fixed;inset:0;z-index:200;background:rgba(15,14,12,.94);display:grid;place-items:center;padding:12px}
+#tfilm{position:fixed;inset:0;z-index:200;background:#0f0e0c;display:grid;place-items:center;padding:12px;overflow:auto}
+#tfilm:fullscreen,#tfilm:-webkit-full-screen{background:#0f0e0c;padding:6px}
 #tfilm[hidden]{display:none}
-.tf-box{width:min(1100px,100%);display:grid;gap:10px;color:#f5efe4}
+.tf-box{width:min(1100px,100%);display:grid;gap:8px;color:#f5efe4;justify-items:center}
+.tf-box>*{width:100%}
+.tf-box>.tf-stage{width:min(100%,calc((100vh - 190px) * 16 / 9));width:min(100%,calc((100dvh - 190px) * 16 / 9))}
+#tfilm:fullscreen .tf-box{gap:4px}
+#tfilm:fullscreen .tf-box>.tf-stage{width:min(100%,calc((100vh - 120px) * 16 / 9))}
+#tfilm:fullscreen .tf-tip{display:none}
+@media (orientation:landscape) and (max-height:560px){ .tf-box{gap:4px} .tf-box>.tf-stage{width:min(100%,calc((100dvh - 150px) * 16 / 9))} .tf-ctl{gap:6px;flex-wrap:nowrap} .tf-cap{min-height:2.4em;font-size:15px} .tf-ctl button{min-height:36px;padding:0 12px;font-size:.875rem} #tfilm{padding:4px} }
 .tf-stage{position:relative;width:100%;aspect-ratio:16/9;background:#fbf4e6;border-radius:10px;overflow:hidden}
 .tf-stage svg{position:absolute;inset:0;width:100%;height:100%;display:block;font-family:Archivo,Inter,"Helvetica Neue",Arial,sans-serif}
 .tf-cap{min-height:3.2em;margin:0;font-size:clamp(15px,2.2vw,22px);font-weight:600;line-height:1.35;text-align:center}
@@ -494,6 +501,8 @@ body.group-only #grp{display:grid;gap:18px;padding:24px 28px;max-width:1500px;ma
 .tp-two{width:100%;border-collapse:collapse;font-size:.875rem}.tp-two th,.tp-two td{padding:6px 4px;border-bottom:1px solid var(--faint);text-align:left;vertical-align:top}.tp-two thead th{font-size:.8125rem;color:var(--quiet)}
 .tp-re{display:block;width:100%;text-align:left;cursor:pointer;font:inherit;color:inherit}.tp-re>span{display:grid;gap:4px}.tp-re b{font-size:1.0625rem}
 .tp-link{background:none;border:0;color:var(--ink);text-decoration:underline;font:inherit;font-size:.9375rem;padding:8px;cursor:pointer;justify-self:center}
+.tp-story p{margin:0 0 10px;line-height:1.5}.tp-story .tp-day{font-weight:700;font-size:.8125rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent,#b8740b);margin:14px 0 4px}
+.tp-story .tp-sh{display:block;font-size:.8125rem;color:var(--quiet,#6b665c);margin-top:2px}
 </style>
 </head>
 <body>
@@ -2411,7 +2420,7 @@ const STORY={
  rail:{pre:()=>'You book your journey.',post:()=>'The day comes, and you set off.'},
  hotel:{pre:()=>'You book your room.',post:()=>((TS().chats||{}).late?'Two hours late, you finally arrive at the hotel.':'You arrive at the hotel.')},
  bistro:{pre:()=>'You book a table for dinner at the hotel’s bistro.',post:()=>((TS().chats||{}).table?'In the evening, you and your friend go down to dinner.':'In the evening, you go down to dinner.')},
- venue:{pre:()=>'You buy a ticket for the concert.',post:()=>'In the evening, you head to the concert.'},
+ venue:{pre:()=>'You buy a ticket for '+bz('venue').name+'.',post:()=>'In the evening, you head to '+bz('venue').name+'.'},
  taxi:{post:()=>'You step out of the station and look for your taxi.'},pharmacy:{post:()=>'You walk up to the counter.'},tour:{post:()=>'The walk begins in the old town.'},spa:{post:()=>'You arrive at the spa.'},
  work:{post:()=>'You pick up your badge and find your workshop.'},grocery:{post:()=>'Your groceries arrive at the hotel.'},museum:{post:()=>'You arrive at the museum.'},babysit:{post:()=>'The babysitter arrives at your room.'},cowork:{post:()=>'You arrive at the coworking space.'}};
 const preOf=b=>b.extra?b.scene:STORY[b.id].pre(), postOf=b=>(STORY[b.id]&&STORY[b.id].post)?STORY[b.id].post():'';
@@ -2554,14 +2563,14 @@ function tBar(label,vals,unit){ const mx=Math.max(1,...vals.map(v=>v[1]));
 function tStory(){ const y=tripYou(), n=tripNone(), a=tripAll(), t=TS();
   const lines=tripReqs().map(b=>{ const g=sharedOf(b); const os=b.moments.map(m=>momOut(m,g)); const good=os.filter(o=>!o.bad&&!o.trade).length, tot=os.filter(o=>!o.trade).length; return `<li><b>${esc(b.name)}</b>: you shared ${g.length} of ${b.fields.length}${tot?` · ${good} of ${tot} moments went smoothly`:''}</li>`; }).join('');
   const nc=Object.values(t.conn).filter(Boolean).length, ns=P().sources.filter(s=>s.id!=='vault').length;
-  return `<div class="tp-when">Your trip story</div>`+`<button class="v-btn" data-v="tfilm">▶ Watch your trip (about a minute)</button>`+helmi(`Here is how your trip went because of your choices, next to two other ways it could have gone. You let me read ${nc} of ${ns} places that hold your data${t.autoDone?`, and I answered ${t.autoDone} request${t.autoDone>1?'s':''} for you using your rules`:''}.`)+
+  return `<div class="tp-when">Your trip story</div>`+`<button class="v-btn" data-v="tfilm">▶ Watch your trip (about a minute)</button>`+tripNarrative()+
    tBar('Times you explained your needs',[['You',y.e,'me'],['Shared nothing',n.e,''],['Shared everything',a.e,'']])+
    tBar('Minutes lost arranging things',[['You',y.m,'me'],['Shared nothing',n.m,''],['Shared everything',a.m,'']],' min')+
    tBar('Things that went wrong',[['You',y.r,'me'],['Shared nothing',n.r,''],['Shared everything',a.r,'']])+
    tBar('Insurance paid for your accident',[['You',y.paid,'me'],['Shared nothing',n.paid,''],['Shared everything',a.paid,'']],' €')+
    tBar('Rows of your data businesses could reach',[['You',y.rows,'me'],['Shared nothing',n.rows,''],['Shared everything',a.rows,'']])+
    tBar('Rows taken in the break-in',[['You',y.leak,'me'],['Shared nothing',n.leak,''],['Shared everything',a.leak,'']])+
-   `<div class="v-card"><p><b>Stop by stop</b></p><ul class="v-plain">${lines}</ul></div>`+
+   
    (S.prev?prevCompare()+`<button class="v-btn" data-v="tfinish">Two quick questions, then send</button>`:helmi(`Keep this screen open for the discussion. First, a few questions about what you would want in your own life.`)+`<button class="v-btn" data-v="tround">Your choices (before the discussion)</button>`); }
 /* ---------- navigation ---------- */
 function tripGo(i){ TS().i=i; V.autoNote=0; const st=tripPlan()[i]; if(st&&st.k==='chat'){ TS().chatStart=msgs(st.bid).length; msgAuto(st); } vGo({tab:'tstage',biz:null,fu:false}); }
@@ -2850,6 +2859,34 @@ function tripAddData2(){ const d=P(), x=XP[S.persona]; if(!x||d.__x4) return; d.
     ins.moments.push({t:'Your searches',dep:['web.history'],c:{},neg:1,trade:1,w:'The insurer doesn’t see what you search for.',b:'The insurer’s system reads three years of your searches and raises your risk score because of what you looked up about your health.'}); } }
 (()=>{ const pl=POOL.find(x=>x.id==='planner'); if(pl){ Object.values(pl.per).forEach(v=>v.f.push('photos.all')); pl.common.push({t:'Your trip album',dep:['photos.all'],c:{},neg:1,trade:1,w:'Your photos stay on your phone.',b:'The app makes a trip album for you, and keeps your whole photo library: other people’s faces, your home, your screenshots.'}); } })();
 const _tad=tripAddData; tripAddData=function(){ _tad(); tripAddData2(); };
+/* ---------- the trip told as a story, for the trip story screen ---------- */
+function tripNarrative(){ const t=TS(), plan=tripPlan(), out=[]; let day='';
+  const cap=x=>x?x[0].toUpperCase()+x.slice(1):x, dot=x=>x&&!/[.!?]$/.test(x)?x+'.':x;
+  const nc=Object.values(t.conn).filter(Boolean).length, A={ask:'ask you about every request',suggest:'suggest what to share',auto:'answer by your rules and tell you after'}[t.auto]||'ask you first';
+  out.push({when:'Before you leave',txt:`You set up Helmi. You let it read ${nc} place${nc===1?' that holds':'s that hold'} your data, and told it to ${A}.`}); day='Before you leave';
+  const dayOf=w=>(w||'').split(',')[0];
+  plan.forEach(st=>{
+    if(st.k==='req'){ const b=bz(st.id), g=sharedOf(b); if(!S.dec[b.id]) return;
+      const os=b.moments.map(mo=>({mo,o:momOut(mo,g)})); const bad=os.find(x=>x.o.bad&&!x.o.trade), good=os.find(x=>!x.o.bad&&!x.o.trade), cost=os.find(x=>x.o.trade&&x.o.on);
+      const parts=[]; const post=postOf(b); if(post) parts.push(post);
+      [good,bad,cost].filter(Boolean).forEach(x=>{ const s=youT(tpl(x.o.on?x.mo.b:x.mo.w)); if(!parts.includes(s)) parts.push(s); });
+      const sh=g.length===b.fields.length?`You shared everything ${b.name} asked for.`:g.length?`You shared ${g.length} of the ${b.fields.length} things ${b.name} asked for.`:`You shared nothing with ${b.name}.`;
+      const w=b.id==='ins'?'Before you leave':dayOf(b.when.replace(' · ',', '));
+      let tx=parts.map(dot).join(' '); if(/^Two hours late/.test(tx)) tx=tx.replace(/ You arrive at [^.]*\./g,''); out.push({when:w===day?'':w,name:b.name,txt:tx,note:sh}); day=w; }
+    else if(st.k==='chat'){ const b=bz(st.bid), by=(t.sentBy||{})[st.id], sent=(t.chats||{})[st.id];
+      const why={late:`Your ${(bz('rail').type||'transport').toLowerCase().replace(/ (company|operator)$/,'')} is running two hours late.`,table:'A friend turns up in town.',doors:'You want to know when the doors open.'}[st.id]||'';
+      if(sent) out.push({when:'',txt:why+' '+(by==='helmi'?`Helmi messages ${b.name} for you, and they reply.`:by==='draft'?`You send Helmi’s draft to ${b.name}, and they reply.`:`You message ${b.name} yourself, and they reply.`)}); }
+    else if(st.k==='ev'&&st.id==='home'){ const ev=t.ev.home||{}, who=WHO[S.persona];
+      out.push({when:'',txt:`${cap(who)} messages you on WhatsApp. `+(ev.mode==='send'?`Helmi replies for you, in your style. ${cap(who)} never knows.`:ev.sent==='draft'?'You send the reply Helmi wrote in your style.':'You reply yourself.')}); }
+    else if(st.k==='ev'&&st.id==='breach'&&t.breachAt){ const b=bz(t.breachAt), g=sharedOf(b);
+      out.push({when:'',txt:`Then the news: ${b.name} has been broken into. `+(g.length?`The attacker takes what you gave them: ${g.map(k=>lcl(F(k).label)).join(', ')}. Nothing else about you was there.`:'The attacker finds nothing about you, because you shared nothing with them.')}); }
+    else if(st.k==='ev'&&st.id==='unreach'){ const o=unreachOut();
+      out.push({when:'',txt:`At ${bz('venue').name} your phone is on silent when ${bz('rail').name} cancels your journey home. ${o.txt}`}); }
+    else if(st.k==='ev'&&st.id==='accident'){ const a=ACC[S.persona], g=sharedOf(bz('ins')), paid=accPaid(g);
+      out.push({when:'',txt:a.what+' '+(paid?`Your insurance pays ${paid} euros.`:g.includes('health.diag')?'Your claim is refused, because you shared your diagnoses.':'Your claim is refused: the insurer read your chats and says you hid a condition.')}); } });
+  const y=tripYou();
+  out.push({when:'Home again',txt:`You explained your needs ${y.e} time${y.e===1?'':'s'}, lost ${y.m} minutes sorting things out, and ${y.r?`${y.r} thing${y.r===1?'':'s'} went wrong`:'nothing went wrong'}. Here’s how that compares with sharing nothing, or everything.`});
+  return `<div class="v-card tp-story"><p class="tp-k">Your trip, as a story</p>${out.map(o=>`${o.when?`<p class="tp-day">${esc(o.when)}</p>`:''}<p>${esc(o.txt)}${o.note?` <span class="tp-sh">${esc(o.note)}</span>`:''}</p>`).join('')}</div>`; }
 
 /* ================================================================== business mode (#business): you run the hotel */
 const BIZM=(location.hash||'').startsWith('#business');
@@ -3468,12 +3505,16 @@ function tfPause(){ tfPlaying=false; cancelAnimationFrame(tfRaf); try{ speechSyn
 function tfOpen(data){ tfF=tfBuild(data); { const miss=tfF.caps.filter(c=>!(typeof TRIPVOX!=='undefined'&&TRIPVOX[c.text])).map(c=>c.text); if(miss.length) console.warn('TRIPVOX missing: '+JSON.stringify(miss)); } let el=document.getElementById('tfilm'); if(!el){ el=document.createElement('div'); el.id='tfilm'; el.setAttribute('role','dialog'); el.setAttribute('aria-label','Your trip, replayed'); document.body.appendChild(el); }
   el.innerHTML=`<div class="tf-box"><div class="tf-stage"><svg viewBox="0 0 1920 1080" aria-hidden="true"><defs><filter id="sh" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="5" dy="7" stdDeviation="3" flood-color="#3b2a1a" flood-opacity=".28"/></filter></defs><g id="tf-world"></g></svg></div>
    <p class="tf-cap" id="tf-cap" aria-live="polite"></p><input type="range" id="tf-prog" min="0" max="${tfF.duration.toFixed(2)}" step="0.05" value="0" aria-label="Position in the replay">
-   <div class="tf-ctl"><button id="tf-pp">Pause</button><button id="tf-re">Restart</button><button id="tf-snd" aria-pressed="true">Voice on</button><button id="tf-x">Close</button></div><p class="tf-tip">Turn your phone sideways for a bigger picture.</p></div>`;
+   <div class="tf-ctl"><button id="tf-pp">Pause</button><button id="tf-re">Restart</button><button id="tf-snd" aria-pressed="true">Voice on</button><button id="tf-fs" aria-label="Full screen">⛶ Full screen</button><button id="tf-x">Close</button></div><p class="tf-tip">Tap Full screen, or turn your phone sideways, for a bigger picture.</p></div>`;
   el.hidden=false; document.body.classList.add('tf-on');
   document.getElementById('tf-pp').onclick=()=>tfPlaying?tfPause():tfPlay();
   document.getElementById('tf-re').onclick=()=>{ tfPause(); tfRender(0); tfPlay(); };
   document.getElementById('tf-snd').onclick=e=>{ tfVoice=!tfVoice; e.target.textContent=tfVoice?'Voice on':'Voice off'; e.target.setAttribute('aria-pressed',tfVoice); if(!tfVoice){ try{ speechSynthesis.cancel(); }catch(_){} try{ if(tfAu) tfAu.pause(); }catch(_){} } };
-  document.getElementById('tf-x').onclick=()=>{ tfPause(); el.hidden=true; document.body.classList.remove('tf-on'); };
+  const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+  const fsBtn=document.getElementById('tf-fs'); if(!(el.requestFullscreen||el.webkitRequestFullscreen)) fsBtn.hidden=true;
+  fsBtn.onclick=()=>{ if(fsEl()){ (document.exitFullscreen||document.webkitExitFullscreen).call(document); return; } const r=(el.requestFullscreen||el.webkitRequestFullscreen).call(el); const lock=()=>{ try{ screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{}); }catch(e){} }; if(r&&r.then) r.then(lock).catch(()=>{}); else lock(); };
+  document.addEventListener('fullscreenchange',()=>{ fsBtn.textContent=fsEl()?'Exit full screen':'⛶ Full screen'; if(!fsEl()){ try{ screen.orientation.unlock(); }catch(e){} } });
+  document.getElementById('tf-x').onclick=()=>{ tfPause(); if(fsEl()) try{ (document.exitFullscreen||document.webkitExitFullscreen).call(document); }catch(e){} el.hidden=true; document.body.classList.remove('tf-on'); };
   document.getElementById('tf-prog').oninput=e=>{ const w=tfPlaying; tfPause(); tfRender(+e.target.value); if(w) tfPlay(); };
   try{ speechSynthesis.cancel(); }catch(e){} tfT=0; tfRender(0); tfPlay(); }
 
