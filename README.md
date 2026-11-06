@@ -30,7 +30,7 @@ Four invented personas, each with an upcoming trip:
 | **Sanna Mäkinen**, 36 | No disability: everyday preferences (quiet room, vegetarian, loyalty points) | Takes the bus to Turku for work |
 | **Laura Heikkinen**, 34 | Travelling with her son Onni, 10 months, and a pushchair | Takes the ferry from Helsinki to Tallinn on holiday |
 
-Each trip uses a different way to travel, but every persona meets the same five kinds of place: a transport company, a hotel, the hotel's own restaurant, an event and an insurer. That makes it possible to compare sharing for a disability, a family situation and no particular need.
+Each trip uses a different way to travel, but every persona meets different places: a transport company, a hotel, the hotel's own restaurant, an event and an insurer. That makes it possible to compare sharing for a disability, a family situation and no particular need.
 
 Their trips involve invented businesses: an airline, train, bus or ferry company, a hotel, the hotel's own restaurant, a concert or show and an insurer. The insurer asks for far more than it needs, so you can see what saying no looks like.
 
