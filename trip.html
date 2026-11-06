@@ -2811,6 +2811,7 @@ function prevCompare(){ const p=S.prev; if(!p) return ''; const y=tripYou(), t=T
    helmi(same?`Did you decide differently this time? Think about why, if you did. Your answers go to the research team with both trips.`:`Did you decide differently as ${esc(nN)}? Think about why, if you did.`); }
 /* the form gets only the data line (Forms long answers hold about 4,000 characters); copy and save keep the readable text too */
 const _sendUrlT=sendUrl; sendUrl=function(){ if(!TRIP) return _sendUrlT(); const tpl=formTpl(); if(!tpl) return ''; return tpl.replace('CODE',encodeURIComponent(S.pid)).replace('ANSWERS',encodeURIComponent(tosLine())); };
+window.__personaOf=c=>GROUPS[groupOf(c)][0];
 
 /* ================================================================== business mode (#business): you run the hotel */
 const BIZM=(location.hash||'').startsWith('#business');
