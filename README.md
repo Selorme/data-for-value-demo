@@ -30,7 +30,7 @@ Four invented personas, each with an upcoming trip:
 | **Sanna Mäkinen**, 36 | No disability: everyday preferences (quiet room, vegetarian, loyalty points) | Takes the bus to Turku for work |
 | **Laura Heikkinen**, 34 | Travelling with her son Onni, 10 months, and a pushchair | Takes the ferry from Helsinki to Tallinn on holiday |
 
-Each trip uses a different way to travel, but every persona meets different places: a transport company, a hotel, the hotel's own restaurant, an event and an insurer. That makes it possible to compare sharing for a disability, a family situation and no particular need.
+Each trip uses a different way to travel, but every persona meets the same five kinds of place: a transport company, a hotel, the hotel's own restaurant, an event and an insurer. That makes it possible to compare sharing for a disability, a family situation and no particular need.
 
 Their trips involve invented businesses: an airline, train, bus or ferry company, a hotel, the hotel's own restaurant, a concert or show and an insurer. The insurer asks for far more than it needs, so you can see what saying no looks like.
 
@@ -115,9 +115,36 @@ https://selorme.github.io/data-for-value-demo/#vault&setup=A
 
 The easiest way to make these is **8 · Run a study** on the admin page, which also makes QR codes.
 
+## Workshop version: trip mode
+
+`trip.html` is a separate, game-like version for a persona workshop, inspired by *1 in 8 billion*. It takes about 13 minutes on a phone. The main demo (`index.html`) is unchanged.
+
+**Try it:** https://selorme.github.io/data-for-value-demo/trip.html#trip
+
+- **Your life.** You play Aino, Elina, Sanna or Laura, written as "you".
+- **Set up Helmi** (6 steps):
+  - what it may read, from 19 or 20 sources, including the most personal: WhatsApp, Telegram and Instagram messages, email, photos, search history, a private journal, a cycle tracker, mood and therapy notes, contacts and voice recordings
+  - how much it decides
+  - whether it advises you
+  - whether it writes messages for you (in your style if it can read your chats)
+  - what it should do if it's unsure or can't reach you
+  - your rules
+- **The trip.** About 10 places, as a storyline. Some places, like the hotel, are the same for everyone; others are picked by your code. You also do chat tasks, get a message from home, and face things you don't control: a break-in, an accident and an insurance claim, and Helmi trying to reach you while your phone is on silent. Your choices have consequences, such as a claim refused because the insurer read your chats.
+- **Your trip story.** Your trip compared with "shared nothing" and "shared everything", and a one-minute narrated replay of your trip.
+- **Before and after.** You answer 24 questions about what you'd let an assistant do in your own life. After the group discussion, you answer them again on the same phone. You can also play your trip again and see both trips side by side. Answers are kept in your phone's browser under your code and sent to the research team only when you press Send.
+
+| Link | Opens |
+| --- | --- |
+| `trip.html#trip` | trip mode, with a random person |
+| `trip.html#trip&persona=aino` | a fixed person (`aino`, `elina`, `sanna` or `laura`) |
+| `trip.html#business` | business mode: you run Hotel Merikaari and set up your booking bot |
+| `trip.html#group` | the group screen for the facilitator: everyone's trips, and the before-and-after table |
+
+Add `&form=` and an encoded Microsoft Forms pre-filled link (with `CODE` and `ANSWERS`) to send answers to a form, as in study mode.
+
 ## All data is invented
 
-Every person, business, record and transaction in this demo is **synthetic**, generated for the project. No real personal data is used, stored or sent. The demo is a single HTML file that runs entirely in your browser. It has no accounts, no database and no tracking. Network checks and messages are simulated. Participant answers go only where the participant chooses to send them.
+Every person, business, record, message, photo description and transaction in this demo is **synthetic**, generated for the project. No real personal data is used, stored or sent. The demo is a single HTML file that runs entirely in your browser. It has no accounts, no database and no tracking. Network checks and messages are simulated. Participant answers go only where the participant chooses to send them.
 
 Please don't upload real participant data or survey answers to this repository.
 
@@ -133,7 +160,7 @@ If something is hard to read, find or use, please tell us: that feedback is part
 
 ## Running it yourself
 
-No install or build is needed. Download `index.html` and the `films` folder, and open `index.html` in any modern browser. You can also host it on any static web host such as GitHub Pages or Netlify.
+No install or build is needed. Download `index.html` (the main demo), `trip.html` (the workshop version) and the `films` folder, and open them in any modern browser. You can also host it on any static web host such as GitHub Pages or Netlify.
 
 Some features need an internet connection: QR codes, loading Excel files and the web fonts. Films play best from a web host. Speaking to Helmi needs a browser with speech recognition, such as Chrome.
 
