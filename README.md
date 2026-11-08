@@ -21,7 +21,7 @@ This demo explores a different way:
 
 ## Who's in the demo
 
-Four invented personas, each with an upcoming trip:
+Eight invented personas, each with an upcoming trip:
 
 | Persona | Needs | Trip |
 | --- | --- | --- |
@@ -29,8 +29,12 @@ Four invented personas, each with an upcoming trip:
 | **Elina Koskinen**, 36 | Blind, travels with her guide dog Kide | Takes the train to Helsinki |
 | **Sanna Mäkinen**, 36 | No disability: everyday preferences (quiet room, vegetarian, loyalty points) | Takes the bus to Turku for work |
 | **Laura Heikkinen**, 34 | Travelling with her son Onni, 10 months, and a pushchair | Takes the ferry from Helsinki to Tallinn on holiday |
+| **Juho Mäkelä**, 34 | Deaf, Finnish Sign Language user | Flies from Oulu to Copenhagen for a design conference and an interpreted play |
+| **Ahmed Warsame**, 41 | Type 1 diabetes, insulin pump and glucose sensor | Takes the train to Jyväskylä for a training course and an ice hockey match |
+| **Pekka Nieminen**, 72 | Rollator, hearing aids, heart condition on a blood thinner | Takes the night train from Lahti to Rovaniemi to visit his grandson |
+| **Ravi Menon**, 23 | Autistic, with ADHD; sensitive to noise and crowds | Flies from Tampere to Oslo for a game jam and a concert |
 
-Each trip uses a different way to travel, but every persona meets the same five kinds of place: a transport company, a hotel, the hotel's own restaurant, an event and an insurer. That makes it possible to compare sharing for a disability, a family situation and no particular need.
+Each trip uses a different way to travel, but every persona meets the same five kinds of place: a transport company, a hotel, the hotel's own restaurant, an event and an insurer. That makes it possible to compare sharing for a disability, a health condition, older age, a family situation and no particular need. The films in the main demo exist for the first four; the other four don't have one yet.
 
 Their trips involve invented businesses: an airline, train, bus or ferry company, a hotel, the hotel's own restaurant, a concert or show and an insurer. The insurer asks for far more than it needs, so you can see what saying no looks like.
 
@@ -121,7 +125,7 @@ The easiest way to make these is **8 · Run a study** on the admin page, which a
 
 **Try it:** https://selorme.github.io/data-for-value-demo/trip.html#trip
 
-- **Your life.** You play Aino, Elina, Sanna or Laura, written as "you".
+- **Your life.** You play one of the eight, written as "you".
 - **Set up Helmi** (6 steps):
   - what it may read, from 19 or 20 sources, including the most personal: WhatsApp, Telegram and Instagram messages, email, photos, search history, a private journal, a cycle tracker, mood and therapy notes, contacts and voice recordings
   - how much it decides
