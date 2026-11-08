@@ -121,7 +121,7 @@ The easiest way to make these is **8 · Run a study** on the admin page, which a
 
 ## Workshop version: trip mode
 
-`trip.html` is a separate, game-like version for a persona workshop, inspired by *1 in 8 billion*. It takes about 13 minutes on a phone. The main demo (`index.html`) is unchanged.
+`trip.html` is a separate, game-like version for a persona workshop, inspired by *1 in 8 billion*. It takes about 13 minutes on a phone. Since 8 November, `index.html` is the same file as `trip.html`: opened without a link ending it shows the researcher page, where **Participant mode (trip)** starts trip mode from the setup and **Business mode (run the hotel)** starts the hotel game. **Open business app** still shows what each business's front desk sees. The earlier main demo, where participant mode opened the vault app, is kept in `Old demos`.
 
 **Try it:** https://selorme.github.io/data-for-value-demo/trip.html#trip
 
@@ -140,7 +140,7 @@ The easiest way to make these is **8 · Run a study** on the admin page, which a
 | Link | Opens |
 | --- | --- |
 | `trip.html#trip` | trip mode, with a random person |
-| `trip.html#trip&persona=aino` | a fixed person (`aino`, `elina`, `sanna` or `laura`) |
+| `trip.html#trip&persona=aino` | a fixed person (`aino`, `elina`, `sanna`, `laura`, `juho`, `ahmed`, `pekka` or `ravi`) |
 | `trip.html#business` | business mode: you run Hotel Merikaari and set up your booking bot |
 | `trip.html#group` | the group screen for the facilitator: everyone's trips, and the before-and-after table |
 
@@ -164,7 +164,7 @@ If something is hard to read, find or use, please tell us: that feedback is part
 
 ## Running it yourself
 
-No install or build is needed. Download `index.html` (the main demo), `trip.html` (the workshop version) and the `films` folder, and open them in any modern browser. You can also host it on any static web host such as GitHub Pages or Netlify.
+No install or build is needed. Download `index.html` and `trip.html` (the same file), the `narration` folder (the recap voice for each person, one file each, loaded only when needed) and the `films` folder, and open them in any modern browser. You can also host it on any static web host such as GitHub Pages or Netlify.
 
 Some features need an internet connection: QR codes, loading Excel files and the web fonts. Films play best from a web host. Speaking to Helmi needs a browser with speech recognition, such as Chrome.
 
