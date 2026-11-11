@@ -141,6 +141,42 @@ section+section{border-top:1px solid var(--line)}
 .vf-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:12px;gap:2px}
 .vf-bar span{display:block;height:100%}
 @media (max-width:700px){.vf-head{grid-template-columns:minmax(0,1fr)}}
+.jere{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:start;background:var(--rail-soft);border-radius:var(--r);padding:20px 24px;margin-bottom:28px}
+.jere .k{font-family:var(--f-mono);font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--rail);padding-top:4px}
+.jere p{font-family:var(--f-display);font-size:1.15rem;line-height:1.4}
+.hand{display:grid;gap:14px}
+.case{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;display:grid;gap:14px}
+.case-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.case-top h3{font-size:1.15rem}
+.case-top span{font-family:var(--f-mono);font-size:.74rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
+.lane{display:flex;gap:4px;align-items:stretch;overflow-x:auto}
+.lane div{flex:1 1 0;min-width:120px;padding:10px 12px;font-size:.88rem;line-height:1.35;border-radius:8px}
+.lane .h{background:var(--rail-soft);color:var(--ink)}
+.lane .y{background:var(--signal-soft);color:var(--ink)}
+.lane .gate{flex:0 0 auto;min-width:0;width:auto;padding:10px 6px;background:none;font-family:var(--f-mono);font-size:.72rem;font-weight:600;color:var(--signal);writing-mode:vertical-rl;transform:rotate(180deg);text-transform:uppercase;letter-spacing:.06em;text-align:center}
+.lane b{display:block;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.lane .h b{color:var(--rail)} .lane .y b{color:var(--signal)}
+.case blockquote{margin:0;font-size:.95rem;color:var(--ink-2);border-left:3px solid var(--line);padding-left:12px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.85rem;color:var(--ink-2);margin-bottom:16px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.rules{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:28px}
+.rule{border-top:3px solid var(--rail);padding-top:14px;display:grid;gap:6px}
+.rule h3{font-size:1.02rem}
+.rule p{font-size:.9rem;color:var(--ink-2)}
+@media (max-width:900px){.rules{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.lane{flex-direction:column;overflow:visible}.lane div{min-width:0}.lane .gate{writing-mode:horizontal-tb;transform:none;padding:2px 12px;text-align:left}}
+@media (max-width:520px){.rules{grid-template-columns:minmax(0,1fr)}.jere{grid-template-columns:minmax(0,1fr)}}
+.asked{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.ask{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;display:grid;gap:12px;align-content:start}
+.ask .links{display:flex;gap:6px;flex-wrap:wrap}
+.ask .links span{font-family:var(--f-mono);font-size:.68rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--rail-soft);color:var(--rail)}
+.ask .links span.j{background:var(--signal-soft);color:var(--signal)}
+.ask h3{font-size:1.08rem;line-height:1.3}
+.ask ul{margin:0;padding-left:1.1em;display:grid;gap:5px;color:var(--ink-2);font-size:.93rem}
+.ask blockquote{margin:0;font-size:.93rem;color:var(--ink-2);border-left:3px solid var(--line);padding-left:12px;font-style:italic}
+.adds{margin-top:28px;background:var(--surface-2);border-radius:var(--r);padding:22px 24px;display:grid;gap:10px}
+.adds ul{margin:0;padding-left:1.1em;display:grid;gap:6px;color:var(--ink-2)}
+@media (max-width:900px){.asked{grid-template-columns:minmax(0,1fr)}}
 /* personas */
 .people{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .person{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:6px;align-content:start}
@@ -250,7 +286,7 @@ footer{padding-block:28px;font-size:.85rem;color:var(--ink-3)}
 <header class="bar"><div class="wrap">
   <div class="brand"><i>H</i>Tell once, share selectively</div>
   <nav class="nav" aria-label="Sections">
-    <a href="#journey">Journey</a><a href="#demo">The demo</a><a href="#vault-films">With vs without</a><a href="#films">Films</a><a href="#people">People</a><a href="#workshop">Workshop</a><a href="#voices">Voices</a><a href="#learned">Learned</a><a href="#next">Next</a><a href="#try">Try it</a>
+    <a href="#journey">Journey</a><a href="#demo">The demo</a><a href="#vault-films">With vs without</a><a href="#films">Films</a><a href="#people">People</a><a href="#workshop">Workshop</a><a href="#voices">Voices</a><a href="#stepin">Step in</a><a href="#asked">Questions</a><a href="#learned">Learned</a><a href="#next">Next</a><a href="#try">Try it</a>
   </nav>
 </div></header>
 
@@ -372,6 +408,48 @@ footer{padding-block:28px;font-size:.85rem;color:var(--ink-3)}
   <div class="quotes" id="quotes"></div>
 </div></section>
 
+<section id="stepin"><div class="wrap">
+  <div class="sec-head"><p class="eyebrow">When Helmi acts, and when people step in</p><h2>People let Helmi do the legwork, then take over for the deal</h2><p class="lede">At the round table we brought in questions from our second meeting with Demola. The answers drew the line between Helmi and the person in a consistent place.</p></div>
+  <div class="jere"><span class="k">Jere, Demola, 4 Nov</span><p>“Where are the human-in-the-loop points when bots talk to bots?” The first hours of discovery could be bot to bot, with humans checking and correcting at the last mile.</p></div>
+  <div class="legend"><span><i style="background:var(--rail-soft);border:1px solid var(--rail)"></i>Helmi acts alone</span><span><i style="background:var(--signal-soft);border:1px solid var(--signal)"></i>The person steps in</span></div>
+  <div class="hand">
+    <div class="case"><div class="case-top"><h3>Buying a car</h3><span>Bot to bot, then a human</span></div>
+      <div class="lane"><div class="h"><b>Helmi</b>Searches dealers across the city with your model, budget and specifications</div><div class="h"><b>Helmi ↔ dealer’s bot</b>Matches your preferences with the cars they actually have</div><div class="h"><b>Helmi</b>Arranges a meeting when there is a match</div><span class="gate" aria-hidden="true">step in</span><div class="y"><b>You</b>See the car in person, negotiate, decide and pay</div></div>
+      <blockquote>“I would divide this whole process in two stages. I would use it for browsing, for sure… I would prefer the AI to arrange a meeting. Until that step I can use AI.”</blockquote></div>
+    <div class="case"><div class="case-top"><h3>Buying stocks</h3><span>Alone, inside a limit</span></div>
+      <div class="lane"><div class="y"><b>You</b>Set the limit, for example never more than 400 euros</div><span class="gate" aria-hidden="true">then</span><div class="h"><b>Helmi</b>Trades inside that limit, without a human’s overconfidence</div><div class="h"><b>Depends</b>On how well Helmi is trained</div></div>
+      <blockquote>“The way the market is, human beings cannot really predict it well… you just set a limit.” “It mostly depends on how you train it.” Another participant was not convinced trading bots work at all.</blockquote></div>
+    <div class="case"><div class="case-top"><h3>Saved card or ID at checkout</h3><span>Alone, with a second check</span></div>
+      <div class="lane"><div class="h"><b>Helmi</b>Fills in the card or ID it already holds</div><span class="gate" aria-hidden="true">check</span><div class="y"><b>You</b>Confirm with a second sign-in on your phone</div></div>
+      <blockquote>“I think it’s two-factor identification, so it’s kind of safe to do that… you have a second authentication from your phone or app.”</blockquote></div>
+    <div class="case"><div class="case-top"><h3>A hotel that needs to know about a disability</h3><span>Helmi translates</span></div>
+      <div class="lane"><div class="h"><b>Helmi</b>Reads the health record and medicines</div><div class="h"><b>Helmi → hotel</b>Shares the need and the verified disability card, not the diagnosis or prescriptions</div></div>
+      <blockquote>“They don’t need to know what medicines I’m taking. It’s already verified on the disability card.” This is the interpretation layer Jere described: data turned into just the information a service needs.</blockquote></div>
+    <div class="case"><div class="case-top"><h3>Photos and private messages</h3><span>Ask every time</span></div>
+      <div class="lane"><div class="y"><b>You</b>Pick the specific photo to share, every time</div></div>
+      <blockquote>“I always have them ask me every single time I want to share a photo, then I can select the specific photo.” Other people are in the photos, and they never agreed.</blockquote></div>
+  </div>
+  <div class="rules">
+    <div class="rule"><h3>Money at stake</h3><p>The more money a step involves, the more people want to be there in person.</p></div>
+    <div class="rule"><h3>Who is on the other side</h3><p>Car dealers felt “sketchy”; a regulated, automated process felt safer to hand over.</p></div>
+    <div class="rule"><h3>A limit or a second check</h3><p>A spending cap or a second sign-in made people comfortable letting Helmi act alone.</p></div>
+    <div class="rule"><h3>How well Helmi is trained</h3><p>Trust in acting alone depended on how good the agent is, which people want to judge for themselves.</p></div>
+  </div>
+  <p class="note" style="margin-top:20px">These are students’ views from one discussion, lightly edited from the recording. They point to where the next workshop should test human checkpoints, not to a rule.</p>
+</div></section>
+
+<section id="asked"><div class="wrap">
+  <div class="sec-head"><p class="eyebrow">What we asked at the round table</p><h2>Ten questions, and what we heard</h2><p class="lede">Each question is tagged with the research question it informs (RQ1–RQ4, see Next) and, in orange, the topic from our conversations with Jere at Demola.</p></div>
+  <div class="asked"><div class="ask"><div class="links"><span>RQ3</span></div><h3>How did the app feel to use?</h3><ul><li>Two participants wanted a short walkthrough first: what each page is and what they are meant to do.</li><li>Too much reading before they had context.</li><li>Some requests felt irrelevant, like a transcript of records; one bundled a degree with all grades.</li><li>One participant liked choosing “ask me before” for every decision.</li></ul><blockquote>“I wish there was a walkthrough, like some apps have: this page is the questions I’ll ask you, this page is your profile.”</blockquote></div><div class="ask"><div class="links"><span>RQ1</span></div><h3>What didn’t you share, and why?</h3><ul><li>One participant prefers to share nothing personal with anyone.</li><li>Passport details: not even by email, they would rather show the passport in person.</li><li>Photo albums, because the people in them never agreed.</li><li>Gmail, Telegram and WhatsApp: almost nothing.</li></ul><blockquote>“I don’t share that, not even on emails with anyone if I’m booking. I prefer showing them.”</blockquote></div><div class="ask"><div class="links"><span>RQ4</span><span class="j">Human checkpoints</span></div><h3>Do you let shops remember your card or ID?</h3><ul><li>Yes, because a second sign-in on the phone makes it feel safe.</li><li>A password manager felt safer than typing details every time (keyloggers).</li><li>A second check is the condition, not the convenience.</li></ul><blockquote>“I think it’s two-factor identification, so it’s kind of safe to do that.”</blockquote></div><div class="ask"><div class="links"><span>RQ2</span><span class="j">Interpretation layer</span></div><h3>Would you let Helmi share the need instead of the diagnosis?</h3><ul><li>Yes: one participant took off the prescriptions and shared only the verified disability card.</li><li>In real life she already has to share that card to get accommodations, “which has pros and cons”.</li></ul><blockquote>“They don’t need to know what medicines I’m taking. It’s already verified on the disability card.”</blockquote></div><div class="ask"><div class="links"><span>RQ4</span><span class="j">Bot to bot</span></div><h3>Would you let an agent buy a car, or stocks, for you?</h3><ul><li>Car: Helmi searches, talks to the dealer’s bot and books a meeting; the person sees the car and pays.</li><li>Stocks: alone inside a limit the person sets, depending on how well Helmi is trained. One sceptic.</li><li>See “Step in” above for the full picture.</li></ul><blockquote>“Until that step I can use AI.”</blockquote></div><div class="ask"><div class="links"><span>RQ1</span><span class="j">Feeling watched anyway</span></div><h3>Is there anything you’d share that we didn’t ask for? Your location?</h3><ul><li>The room split. Two never share GPS: “sharing GPS means you’re everywhere”, “someone is tracking you”.</li><li>One said there is no point turning it off, because every app collects location anyway.</li><li>This echoes our first chat with Jere: people feel watched already, so they stop guarding their data.</li></ul><blockquote>“I basically see there’s no point in turning off your GPS.”</blockquote></div><div class="ask"><div class="links"><span>RQ2</span><span class="j">Freedom to refuse</span></div><h3>Should services be allowed to force you to share?</h3><ul><li>Some sharing is unavoidable: a phone network takes your location whatever you do.</li><li>One participant trusts big providers more, believing their security is stronger than small apps’.</li><li>People accept forced sharing when the service is essential, which is the same pressure people with access needs face.</li></ul><blockquote>“The things that are inevitable, they are inevitable.”</blockquote></div><div class="ask"><div class="links"><span>Open question</span><span class="j">Benefit vs risk</span></div><h3>Would you share your location to find a hospital faster?</h3><ul><li>Yes, for an urgent need: “I’ll give the location.”</li><li>But through a tool they already trust, like Google Maps, not a new app.</li><li>A first hint at the open question of how much benefit it takes: urgency changes the answer.</li></ul><blockquote>“It depends on the services. If I have to find hospitals, I’ll use Google Maps.”</blockquote></div><div class="ask"><div class="links"><span>Where data lives</span><span class="j">Liability and regulation</span></div><h3>Have you avoided a service because of what it does with your data?</h3><ul><li>A participant avoids a popular cycle-tracking app that shares data with authorities, and uses one that keeps data only on her phone.</li><li>In the US, consumer health apps fall outside health privacy law, and no agency is equipped to handle these cases.</li><li>Our team hadn’t heard of this: how would anyone find out, apart from the fine print?</li></ul><blockquote>“I only use an app that keeps the data locally on my own device.”</blockquote></div><div class="ask"><div class="links"><span>RQ1</span><span class="j">Believable safeguards</span></div><h3>Anything else?</h3><ul><li>Apps should show credible cybersecurity, or a certification from a known body; then people would let the app do the task.</li><li>Data about disabled people should be regulated, because a leak puts them in trouble.</li><li>Nothing is ever truly deleted online.</li><li>“Your entire project is about trust.”</li></ul><blockquote>“Then it might be more helpful for me to use the app rather than doing it myself.”</blockquote></div></div>
+  <div class="adds"><h3>What this adds for the next round</h3><ul>
+    <li><b>Where the data lives.</b> One participant keeps health data only on her phone; another trusts big providers’ security more than small apps’. Our setup A (data stays at its source) and setup B (one personal server) were never discussed directly, so test them.</li>
+    <li><b>Refusing isn’t always possible.</b> When a service is essential, people share anyway. That links the GPS answers to the pressure people with access needs face.</li>
+    <li><b>Benefit changes the answer.</b> Urgency (a hospital) made location sharing acceptable. Test different sizes of benefit, as the team suggested.</li>
+    <li><b>People don’t know what apps do.</b> Our team hadn’t heard about the cycle-tracking app. Showing what a business does with data may matter as much as the switches.</li>
+    <li><b>Liability and the business side</b>, which Jere raised, did not come up. They need their own session, ideally with a business.</li>
+  </ul></div>
+</div></section>
+
 <section id="learned"><div class="wrap">
   <div class="sec-head"><p class="eyebrow">What we learned</p><h2>Four findings, three open questions</h2></div>
   <div class="find">
@@ -383,7 +461,7 @@ footer{padding-block:28px;font-size:.85rem;color:var(--ink-3)}
   <div class="qs">
     <div class="qcard"><h3>Risk understanding or real preference?</h3><p>Probably both. One participant preferred to share nothing at all; two were open to it if the risks were reduced. Age may play a part.</p></div>
     <div class="qcard"><h3>When would safeguards change a decision?</h3><p>Which protections would people believe, and how do we show them in a way that is honest and understandable?</p></div>
-    <div class="qcard"><h3>How much benefit would it take?</h3><p>Everything we proposed lowers the risk. We never asked how big the benefit must be before people say yes.</p></div>
+    <div class="qcard"><h3>How much benefit would it take?</h3><p>Everything we proposed lowers the risk. We never asked how big the benefit must be before people say yes. One hint: to find a hospital fast, a participant would share their location.</p></div>
   </div>
   <div class="limits"><h3>What this round can’t tell us</h3><ul>
     <li>Four technologically confident students are not older adults or people with lived access needs.</li>
@@ -436,9 +514,9 @@ const STOPS=[
  {d:'Late October',t:'A week with Helmi, synthetic data and films',body:'Elina connects her services one at a time and sees what her assistant can do. Aino and Elina got full synthetic records, and short films showed each trip with and without the vault.',pts:['Films: “Aino goes to Stockholm” and “Elina goes to Helsinki”','Synthetic records from Kanta, Kela, bank, Google, loyalty cards and more'],img:'o3_week',cap:'A week with Helmi'},
  {d:'26–27 October',t:'Study plan and the Nokia challenge',body:'We wrote a testing plan, consent forms and a 45-question survey in Microsoft Forms. For the Nokia Student Network Challenge we pitched “proving, not sharing”: answering yes-or-no questions such as “is she at the station?” through Nokia’s Network as Code without handing over location data.',pts:['Information sheets, consent and privacy notice','A pitch film for Elina'],why:'Some questions can be answered without sharing the data at all.'},
  {d:'3 November',t:'The four-persona demo',key:true,tag:'Last class update',body:'Aino, Elina, Sanna and Laura, with over 32,000 rows of invented data. A live permission map, trip-only access that closes by itself, cross-business requests that are blocked and logged, and a breach comparison: data that stays put versus one personal server.',pts:['Researcher page, vault app, business app and study mode','A back-end walkthrough video for Demola'],img:'o4_four',cap:'Researcher page, four personas'},
- {d:'4 November',t:'Second meeting with Demola',body:'Jere asked whether we were asking the right question. Instead of “should the hotel get access?”, ask how two agents negotiate what is needed, with humans at the last mile. Helmi could be a translator that turns raw data into just the information a service needs.',pts:['Prioritise a workshop with deep discussion over the survey','Don’t test direct business access: test how much people let their own agent decide'],why:'This is where autonomy became the main question of the study.'},
+ {d:'4 November',t:'Second meeting with Demola',body:'Jere asked whether we were asking the right question. Instead of “should the hotel get access?”, ask how two agents negotiate what is needed, with humans at the last mile. Helmi could be a translator that turns raw data into just the information a service needs.',pts:['Prioritise a workshop with deep discussion over the survey','Don’t test direct business access: test how much people let their own agent decide','Where are the human checkpoints when bots talk to bots?'],why:'This is where autonomy became the main question of the study.'},
  {d:'5–8 November',t:'Trip mode',key:true,body:'We rebuilt the demo around one trip that the participant lives through. They set Helmi up, answer every request, and face what follows: a refused claim, a break-in, a message from home, Helmi unable to reach them at a concert.',pts:['Eight people: Juho, Ahmed, Pekka and Ravi joined','A narrated story of your own trip, card sort before and after the discussion, replay','Group screen with charts, and business mode where you run the hotel'],img:'t15_event1',cap:'Helmi can’t reach you'},
- {d:'9 November',t:'Workshop 1',key:true,body:'Four students in the university library: 15 minutes on the trip, a 24-card sort, a 14-minute round table and the same questions again. Everyone used their own phone.',pts:['3 of 4 shared nothing with the insurer','Nobody shared chats or email with a business'],img:'t18_round',cap:'The card sort'},
+ {d:'9 November',t:'Workshop 1',key:true,body:'Four students in the university library: 15 minutes on the trip, a 24-card sort, a 14-minute round table and the same questions again. Everyone used their own phone.',pts:['3 of 4 shared nothing with the insurer','Nobody shared chats or email with a business','People let Helmi search, compare and talk to a seller’s bot, then step in for the deal'],img:'t18_round',cap:'The card sort'},
  {d:'10–11 November',t:'Reflections',body:'Each of us wrote a reflection. Together they gave four findings, three open questions and four research questions for the next round.',pts:['Risk understanding or real preference?','When would believable safeguards change a decision?','How much benefit would it take?']},
  {d:'Next',t:'Workshop 2',next:true,body:'A walkthrough, finer permissions and “share the need, not the record” in the prototype. A health or disability scenario, and participants with lower digital confidence, lived access needs or an EU upbringing.',pts:['Compare raw record, editable summary and declining','Ask what people think Helmi and the business can see']}
 ];
@@ -477,8 +555,11 @@ const QUOTES=[
  ['access','In my everyday life I have to share my disability card to get accommodations, which has pros and cons.','Participant'],
  ['access','They don’t need to know what medicines I’m taking. It’s already verified on the disability card.','Participant'],
  ['delegate','I would use it for browsing, for sure. I’d like the AI to arrange a meeting. Until that step I can use AI.','Participant, on buying a car'],
+ ['delegate','The way the market is, human beings cannot really predict it well. You just set a limit, maybe no more than 400 euros.','Participant, on buying stocks'],
+ ['delegate','It mostly depends on how you train it.','Participant, on letting Helmi trade'],
  ['trust','Apps should have credible cybersecurity, or some kind of certification. Then it might be more helpful for me to use the app than to do it myself.','Participant'],
  ['trust','Your entire project is about trust.','Participant'],
+ ['trust','The greater the network, the stronger I believe their cybersecurity is. The things that are inevitable, they are inevitable.','Participant, on big providers'],
  ['others','If it’s your work email and an agent helps you reply, I think that would change the picture.','Team debrief'],
  ['trust','People are okay with sharing if they can trust the one they’re sharing with.','Team debrief'],
  ['team','It’s not 100% what we thought in the beginning. It’s more like a discovery.','Team debrief']
