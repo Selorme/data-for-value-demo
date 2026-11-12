@@ -3387,6 +3387,12 @@ function formAnswer(){ const slim=tosSlim(), full=tosExpand(JSON.parse(tosLine()
   let txt=rd(full)+tail; if(txt.length>3950){ const short=rd(Object.assign({},full,{rounds:null})); txt=short+'\n(Card choices are in the data line below.)'+tail; } if(txt.length>3950) txt=slim; return txt; }
 sendUrl=function(){ if(!TRIP) return _sendUrlT(); const tpl=formTpl(); if(!tpl) return ''; return tpl.replace('CODE',encodeURIComponent(S.pid)).replace('ANSWERS',encodeURIComponent(formAnswer())); };
 window.__formAnswer=()=>formAnswer();
+/* 12 Nov: Elina pays at the bistro (touchscreen-only terminals, PIN pressure; Yle 74-20252121) */
+(()=>{ const _tad=tripAddData; tripAddData=function(){ _tad.apply(this,arguments); if(S.persona!=='elina') return; const d=P();
+  if(!d.fields['need.pay']) d.fields['need.pay']={label:'Paying: card terminal',value:'A card terminal with physical keys, or a payment link to her phone. Her PIN stays with her.',src:'vault',rows:1,kind:'need',verified:'Self-declared'};
+  const b=(BIZ.elina||[]).find(x=>x.id==='bistro'); if(!b||b.fields.includes('need.pay')) return;
+  b.fields.splice(3,0,'need.pay'); b.why=b.why.replace('and give Kide room.','give Kide room and have a card terminal ready that she can use.');
+  const i=b.moments.findIndex(m=>m.trade); b.moments.splice(i<0?b.moments.length:i,0,{t:'Paying',dep:['need.pay'],c:{e:1,m:15},w:'The card terminal is a flat touch screen she cannot use. The waiter offers to type in her PIN for her. She says no, and after 15 minutes they find another way for her to pay.',b:'The waiter brings a terminal with physical keys, and she types her own PIN.'}); }; })();
 
 /* ================================================================== business mode (#business): you run the hotel */
 const BIZM=(location.hash||'').startsWith('#business');
